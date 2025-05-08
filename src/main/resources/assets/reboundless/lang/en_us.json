@@ -1,0 +1,20 @@
+{
+  "controls.reboundless.keybinds.keybind.reset": "⇄",
+
+  "controls.reboundless.keybinds.keybind.clear": "☠",
+
+  "controls.reboundless.keybinds.keybind.settings": "···",
+
+    "controls.reboundless.keybinds.keybind.inverted": "Inverted: %s",
+  "controls.reboundless.keybinds.keybind.sticky": "Input Mode: %s",
+
+  "key.categories.unknown": "Unknown",
+
+  "options.true": "True",
+  "options.false": "False",
+
+  "key.mouse.101": "Scroll Up",
+  "key.mouse.102": "Scroll Down",
+  "key.mouse.103": "Scroll Left",
+  "key.mouse.104": "Scroll Right"
+}
