@@ -1,11 +1,16 @@
 package com.chyzman.reboundless;
 
+import com.chyzman.reboundless.api.ReBinding;
+import com.chyzman.reboundless.api.ReBindings;
+import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
+import com.chyzman.reboundless.pond.KeyBindingDuck;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -36,9 +41,6 @@ public class Reboundless implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            var player = client.player;
-            if (player != null) player.sendMessage(Text.literal(CURRENTLY_HELD_KEYS.stream().map(InputUtil.Key::getLocalizedText).map(Text::getString).toList().toString()), true);
-
             SCROLL_KEYS.forEach(key -> {
                 KeyBinding.setKeyPressed(key, false);
                 CURRENTLY_HELD_KEYS.remove(key);

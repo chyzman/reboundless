@@ -34,6 +34,8 @@ public class ReBinding {
     private List<InputUtil.Key> exceptions = new ArrayList<>();
     private boolean isWhitelist = false;
 
+    private int pressPower = 1;
+
     private int debounce = 0;
 
     private int pressesRequired = 1;
@@ -60,6 +62,7 @@ public class ReBinding {
         Endec.BOOLEAN.optionalFieldOf("inverted", ReBinding::inverted, () -> null),
         ReboundlessEndecs.KEY.listOf().optionalFieldOf("exceptions", ReBinding::exceptions, () -> null),
         Endec.BOOLEAN.optionalFieldOf("isWhitelist", ReBinding::isWhitelist, () -> null),
+        Endec.INT.optionalFieldOf("pressPower", ReBinding::pressPower, () -> null),
         Endec.INT.optionalFieldOf("debounce", ReBinding::debounce, () -> null),
         Endec.INT.optionalFieldOf("pressesRequired", ReBinding::pressesRequired, () -> null),
         Endec.INT.optionalFieldOf("timeBetweenPresses", ReBinding::timeBetweenPresses, () -> null),
@@ -77,6 +80,7 @@ public class ReBinding {
         @Nullable Boolean inverted,
         @Nullable List<InputUtil.Key> exceptions,
         @Nullable Boolean isWhitelist,
+        @Nullable Integer pressPower,
         @Nullable Integer debounce,
         @Nullable Integer pressesRequired,
         @Nullable Integer timeBetweenPresses,
@@ -89,6 +93,7 @@ public class ReBinding {
         if (inverted != null) this.inverted = inverted;
         if (exceptions != null) this.exceptions = exceptions;
         if (isWhitelist != null) this.isWhitelist = isWhitelist;
+        if (pressPower != null) this.pressPower = pressPower;
         if (debounce != null) this.debounce = debounce;
         if (pressesRequired != null) this.pressesRequired = pressesRequired;
         if (timeBetweenPresses != null) this.timeBetweenPresses = timeBetweenPresses;
@@ -107,6 +112,7 @@ public class ReBinding {
             false,
             new ArrayList<>(),
             false,
+            1,
             0,
             1,
             350,
@@ -169,6 +175,15 @@ public class ReBinding {
         return this;
     }
 
+    public int pressPower() {
+        return pressPower;
+    }
+
+    public ReBinding pressPower(int pressPower) {
+        this.pressPower = pressPower;
+        return this;
+    }
+
     public int debounce() {
         return debounce;
     }
@@ -220,27 +235,11 @@ public class ReBinding {
         }
 
         if (setPressed(pressed)) {
-            var nowPressed = this.pressed;
             if (keybinding != null) {
-                ((KeyBindingDuck) keybinding).reboundless$setRebindingsPressing(this, nowPressed);
-                if (nowPressed) ((KeyBindingAccessor) keybinding).reboundless$setTimesPressed(((KeyBindingAccessor) keybinding).reboundless$getTimesPressed() + 1);
-                ((KeyBindingDuck) keybinding).reboundless$updatePressed();
+                if (isPressed()) ((KeyBindingAccessor) keybinding).reboundless$setTimesPressed(((KeyBindingAccessor) keybinding).reboundless$getTimesPressed() + pressPower);
+                updateKeybindingState();
             }
         }
-    }
-
-    public boolean setPressed(boolean pressed) {
-        var updated = false;
-        if (sticky) {
-            if (pressed) {
-                this.pressed = !this.pressed;
-                updated = true;
-            }
-        } else {
-            updated = pressed != this.pressed;
-            this.pressed = pressed;
-        }
-        return updated;
     }
 
     public boolean modifiersMatch(List<InputUtil.Key> keys) {
@@ -272,13 +271,35 @@ public class ReBinding {
         }
     }
 
+    public boolean setPressed(boolean pressed) {
+        var updated = false;
+        if (sticky) {
+            if (pressed) {
+                this.pressed = !this.pressed;
+                updated = true;
+            }
+        } else {
+            updated = pressed != this.pressed;
+            this.pressed = pressed;
+        }
+        return updated;
+    }
+
     public boolean isPressed() {
         return inverted != pressed;
+    }
+
+    //TODO: maybe rethink this, vanilla will always call setpressed before incrementing the times pressed, as im writing this my gut says its a bit iffy idk why
+    public void updateKeybindingState() {
+        if (keybinding == null) return;
+        ((KeyBindingDuck) keybinding).reboundless$setRebindingsPressing(this, isPressed());
+        ((KeyBindingDuck) keybinding).reboundless$updatePressed();
     }
 
     public void reset() {
         if (keybinding != null) ((KeyBindingAccessor) keybinding).reboundless$reset();
         pressed = false;
+        updateKeybindingState();
     }
 
     public Text getBoundText() {

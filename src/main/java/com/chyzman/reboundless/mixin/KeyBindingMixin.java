@@ -40,20 +40,14 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
     @Inject(method = "updatePressedStates", at = @At(value = "HEAD"), cancellable = true)
     private static void handlesUpdatePressedStates(CallbackInfo ci) {
         ci.cancel();
-        for (KeyBinding bind : KEYS_BY_ID.values()) {
-            var shouldBePressed = false;
-            for (ReBinding reBinding : ReBindings.byKeyBinding(bind)) {
-                if (reBinding.isPressed()) {
-                    shouldBePressed = true;
-                    break;
-                }
-            }
-            ((KeyBindingAccessor) bind).reboundless$setPressed(shouldBePressed);
+        for (ReBinding reBinding : ReBindings.all()) {
+            reBinding.updateKeybindingState();
         }
     }
 
-    @Inject(method = "unpressAll", at = @At(value = "HEAD"))
+    @Inject(method = "unpressAll", at = @At(value = "HEAD"), cancellable = true)
     private static void handleUnpressAll(CallbackInfo ci) {
+        ci.cancel();
         for (ReBinding reBinding : ReBindings.all()) reBinding.reset();
     }
 
@@ -73,6 +67,6 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
 
     @Override
     public void reboundless$updatePressed() {
-        ((KeyBindingAccessor) this).reboundless$setPressed(!((KeyBindingDuck)this).reboundless$getRebindingsPressing().isEmpty());
+        ((KeyBindingAccessor) this).reboundless$setPressed(!((KeyBindingDuck) this).reboundless$getRebindingsPressing().isEmpty());
     }
 }
