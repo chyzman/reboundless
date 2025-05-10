@@ -11,7 +11,7 @@ import java.util.List;
 @Mixin(KeyBindingRegistryImpl.class)
 public interface KeyBindingRegistryImplAccessor {
 
-    @Accessor("MODDED_KEY_BINDINGS")
+    @Accessor(value = "MODDED_KEY_BINDINGS", remap = false)
     static List<KeyBinding> reboundless$getModdedKeys() {
         throw new UnsupportedOperationException("me when the accessor is called");
     }

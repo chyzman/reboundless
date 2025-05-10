@@ -1,5 +1,6 @@
 package com.chyzman.reboundless.api;
 
+import com.chyzman.reboundless.util.ReboundlessEndecs;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
@@ -11,77 +12,98 @@ import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static com.chyzman.reboundless.Reboundless.MODID;
 
 public class ReBindings {
     public static final List<ReBinding> REBINDINGS = new ArrayList<>();
-    public static final Multimap<KeyBinding, ReBinding> KEYBINDING_TO_REBINDING = HashMultimap.create();
+
+    public static final List<ReCombination> RECOMBINATIONS = new ArrayList<>();
+
     public static final Multimap<InputUtil.Key, ReBinding> KEY_TO_REBINDING = HashMultimap.create();
+
+    public static final Multimap<InputUtil.Key, ReCombination> KEY_TO_RECOMBINATION = HashMultimap.create();
+
+    public static final Map<ReCombination, ReBinding> RECOMBINATION_TO_REBINDING = new HashMap<>();
+
+    public static final Multimap<KeyBinding, ReBinding> KEYBINDING_TO_REBINDING = HashMultimap.create();
 
     public static final List<KeyBinding> INTENTIONALLY_UNBOUND_KEYBINDINGS = new ArrayList<>();
 
     //region ENDEC STUFF
 
-    private static final Endec<List<ReBinding>> REBBINGING_LIST_ENDEC = ReBinding.ENDEC.listOf();
+    private static final Endec<List<ReBinding>> REBINGING_LIST_ENDEC = ReBinding.ENDEC.listOf();
 
-    private static final Endec<List<KeyBinding>> KEYBINDING_LIST_ENDEC = Endec.STRING.xmap(KeyBinding::byId, KeyBinding::getTranslationKey).listOf();
+    private static final Endec<List<KeyBinding>> KEYBINDING_LIST_ENDEC = ReboundlessEndecs.KEYBINDING.listOf();
 
     //endregion
 
-    public static List<ReBinding> all() {
+    public static List<ReBinding> allReBindings() {
         return REBINDINGS;
     }
 
-    public static List<ReBinding> byKeyBinding(KeyBinding keyBinding) {
-        return new ArrayList<>(KEYBINDING_TO_REBINDING.get(keyBinding));
+    public static List<ReBinding> reBindingsByKey(InputUtil.Key key) {
+        return new ArrayList<>(KEY_TO_REBINDING.get(key));
     }
 
-    public static List<ReBinding> byKey(InputUtil.Key key) {
-        return new ArrayList<>(KEY_TO_REBINDING.get(key));
+    public static List<ReCombination> combinationsByKey(InputUtil.Key key) {
+        return new ArrayList<>(KEY_TO_RECOMBINATION.get(key));
+    }
+
+    public static ReBinding reBindingByCombination(ReCombination reCombination) {
+        return RECOMBINATION_TO_REBINDING.get(reCombination);
+    }
+
+    public static List<ReBinding> reBindingsByKeyBinding(KeyBinding keyBinding) {
+        return new ArrayList<>(KEYBINDING_TO_REBINDING.get(keyBinding));
     }
 
     public static List<KeyBinding> unboundKeys() {
         return INTENTIONALLY_UNBOUND_KEYBINDINGS;
     }
 
-    public static void refresh() {
-        KEYBINDING_TO_REBINDING.clear();
+    public static void reCache() {
+        RECOMBINATIONS.clear();
         KEY_TO_REBINDING.clear();
+        KEYBINDING_TO_REBINDING.clear();
+        KEY_TO_RECOMBINATION.clear();
+        RECOMBINATION_TO_REBINDING.clear();
         for (ReBinding reBinding : REBINDINGS) {
-            if (reBinding.keybinding() != null) {
-                KEYBINDING_TO_REBINDING.put(reBinding.keybinding(), reBinding);
+            for (ReCombination reCombo : reBinding.combinations()) {
+                RECOMBINATIONS.add(reCombo);
+                KEY_TO_REBINDING.put(reCombo.key(), reBinding);
+                KEY_TO_RECOMBINATION.put(reCombo.key(), reCombo);;
+                for (InputUtil.Key key : reCombo.modifiers()) {
+                    KEY_TO_REBINDING.put(key, reBinding);
+                    KEY_TO_RECOMBINATION.put(key, reCombo);
+                }
+                RECOMBINATION_TO_REBINDING.put(reCombo, reBinding);
             }
-            KEY_TO_REBINDING.put(reBinding.key(), reBinding);
-            for (InputUtil.Key key : reBinding.modifiers()) {
-                KEY_TO_REBINDING.put(key, reBinding);
-            }
+            if (reBinding.keybinding() != null) KEYBINDING_TO_REBINDING.put(reBinding.keybinding(), reBinding);
         }
     }
 
     public static void load(GameOptions.Visitor visitor, Gson gson, KeyBinding[] allKeys) {
         var rebindings = visitor.visitObject(
             MODID + ".rebindings",
-            List.copyOf(ReBindings.all()),
-            string -> REBBINGING_LIST_ENDEC.decodeFully(GsonDeserializer::of, gson.fromJson(string, JsonElement.class)),
-            reBindingList -> REBBINGING_LIST_ENDEC.encodeFully(GsonSerializer::of, reBindingList).toString()
+            List.copyOf(allReBindings()),
+            string -> REBINGING_LIST_ENDEC.decodeFully(GsonDeserializer::of, gson.fromJson(string, JsonElement.class)),
+            reBindingList -> REBINGING_LIST_ENDEC.encodeFully(GsonSerializer::of, reBindingList).toString()
         );
-        ReBindings.all().clear();
-        ReBindings.all().addAll(rebindings);
+        allReBindings().clear();
+        allReBindings().addAll(rebindings);
         var unbound = visitor.visitObject(
             MODID + ".unbound",
-            List.copyOf(ReBindings.unboundKeys()),
+            List.copyOf(unboundKeys()),
             string -> KEYBINDING_LIST_ENDEC.decodeFully(GsonDeserializer::of, gson.fromJson(string, JsonElement.class)),
             keyBindingsList -> KEYBINDING_LIST_ENDEC.encodeFully(GsonSerializer::of, keyBindingsList).toString()
         );
-        var usedKeyBindings = ReBindings.all().stream().map(ReBinding::keybinding).toList();
+        var usedKeyBindings = allReBindings().stream().map(ReBinding::keybinding).toList();
         var unused = Arrays.stream(allKeys).filter(keyBinding -> !usedKeyBindings.contains(keyBinding) && !unbound.contains(keyBinding)).toList();
         for (KeyBinding keyBinding : unused) {
-            ReBindings.all().add(ReBinding.fromKeyBinding(keyBinding));
+            allReBindings().add(ReBinding.fromKeyBinding(keyBinding));
         }
-        refresh();
+        reCache();
     }
 }

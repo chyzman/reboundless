@@ -14,7 +14,6 @@ import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.braid.widgets.Button;
 import io.wispforest.owo.braid.widgets.basic.*;
 import io.wispforest.owo.braid.widgets.flex.Column;
-import io.wispforest.owo.braid.widgets.flex.Flex;
 import io.wispforest.owo.braid.widgets.flex.Flexible;
 import io.wispforest.owo.braid.widgets.flex.Row;
 import io.wispforest.owo.braid.widgets.label.Label;
@@ -27,6 +26,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -75,7 +75,7 @@ public class ReBoundlessWidget extends StatelessWidget {
                                         0.6,
                                         new VerticallyScrollable(
                                             new Column(
-                                                ReBindings.all().stream().map(reBinding -> (Widget) new ReBindConfigurationWidget(reBinding)).toList()
+                                                ReBindings.allReBindings().stream().map(reBinding -> (Widget) new ReBindConfigurationWidget(reBinding)).toList()
                                             )
                                         )
                                     ),
@@ -106,12 +106,12 @@ public class ReBoundlessWidget extends StatelessWidget {
                             var sharedState = SharedState.get(ctx, ReBindingScreenState.class);
                             if (sharedState.selectedRebind == null || sharedState.updateSelected == null) return false;
                             var rebinding = sharedState.selectedRebind;
-                            var currentlyHeldKeys = new ArrayList<>(Reboundless.CURRENTLY_HELD_KEYS).reversed();
-                            rebinding.key(currentlyHeldKeys.getFirst());
-                            currentlyHeldKeys.removeFirst();
-                            rebinding.modifiers().clear();
-                            currentlyHeldKeys.forEach(rebinding.modifiers()::add);
-                            ReBindings.refresh();
+//                            var currentlyHeldKeys = new ArrayList<>(Reboundless.CURRENTLY_HELD_KEYS).reversed();
+//                            rebinding.key(currentlyHeldKeys.getFirst());
+//                            currentlyHeldKeys.removeFirst();
+//                            rebinding.modifiers().clear();
+//                            currentlyHeldKeys.forEach(rebinding.modifiers()::add);
+                            ReBindings.reCache();
                             sharedState.updateSelected.run();
                             SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
                                 reBindingScreenState.selectedRebind = null;
@@ -169,16 +169,26 @@ public class ReBoundlessWidget extends StatelessWidget {
                                     List.of(
                                         new Sized(
                                             20, 20,
-                                            new Button(
+                                            new ConfirmingButton(
                                                 Text.translatable("controls.reboundless.keybinds.keybind.reset"),
-                                                () -> this.setState(() -> this.expanded = !this.expanded)
+                                                Text.translatable("controls.reboundless.keybinds.keybind.reset.tooltip"),
+                                                Text.translatable("controls.reboundless.keybinds.keybind.reset.tooltip.confirm"),
+                                                () -> {
+                                                    var player = MinecraftClient.getInstance().player;
+                                                    if (player != null) player.sendMessage(Text.literal("pretend it was reset here"), false);
+                                                }
                                             )
                                         ),
                                         new Sized(
                                             20, 20,
-                                            new Button(
+                                            new ConfirmingButton(
                                                 Text.translatable("controls.reboundless.keybinds.keybind.clear"),
-                                                () -> this.setState(() -> this.expanded = !this.expanded)
+                                                Text.translatable("controls.reboundless.keybinds.keybind.clear.tooltip"),
+                                                Text.translatable("controls.reboundless.keybinds.keybind.clear.tooltip.confirm"),
+                                                () -> {
+                                                    var player = MinecraftClient.getInstance().player;
+                                                    if (player != null) player.sendMessage(Text.literal("pretend it was cleared here"), false);
+                                                }
                                             )
                                         ),
                                         new Sized(
@@ -204,16 +214,20 @@ public class ReBoundlessWidget extends StatelessWidget {
                                         new ToggleButton(
                                             Text.translatable("controls.reboundless.keybinds.keybind.sticky", Text.translatable("options.key.toggle")),
                                             Text.translatable("controls.reboundless.keybinds.keybind.sticky", Text.translatable("options.key.hold")),
-                                            rebinding.sticky(),
-                                            enabled -> this.setState(() -> rebinding.sticky(enabled))
+//                                            rebinding.sticky(),
+//                                            enabled -> this.setState(() -> rebinding.sticky(enabled))
+                                            false,
+                                            enabled -> this.setState(() -> {})
                                         )
                                     ),
                                     new Flexible(
                                         new ToggleButton(
                                             Text.translatable("controls.reboundless.keybinds.keybind.inverted", Text.translatable("options.true")),
                                             Text.translatable("controls.reboundless.keybinds.keybind.inverted", Text.translatable("options.false")),
-                                            rebinding.inverted(),
-                                            enabled -> this.setState(() -> rebinding.inverted(enabled))
+//                                            rebinding.inverted(),
+//                                            enabled -> this.setState(() -> rebinding.inverted(enabled))
+                                            false,
+                                            enabled -> this.setState(() -> {})
                                         )
                                     )
                                 )
@@ -243,13 +257,65 @@ public class ReBoundlessWidget extends StatelessWidget {
                     var state = SharedState.get(ctx, ReBindingScreenState.class);
                     var rebinding = this.widget().rebinding;
                     return new Column(
-                        new Button(
-                            state.selectedRebind == rebinding ? rebinding.getEditingText() : rebinding.getBoundText(),
-                            state.selectedRebind == null || state.selectedRebind == rebinding ? () -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
-                                Reboundless.CURRENTLY_HELD_KEYS.clear();
-                                reBindingScreenState.selectedRebind = rebinding;
-                                reBindingScreenState.updateSelected = () -> this.setState(() -> {});
-                            }) : null
+                        new Sized(
+                            null, 20,
+                            new Button(
+//                                state.selectedRebind == rebinding ? rebinding.getEditingText() : rebinding.getBoundText(),
+                                Text.literal("broken atm"),
+                                state.selectedRebind == null || state.selectedRebind == rebinding ? () -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
+                                    Reboundless.CURRENTLY_HELD_KEYS.clear();
+                                    reBindingScreenState.selectedRebind = rebinding;
+                                    reBindingScreenState.updateSelected = () -> this.setState(() -> {});
+                                }) : null
+                            )
+                        )
+                    );
+                }
+            }
+        }
+
+        public class ConfirmingButton extends StatefulWidget {
+            public final Text label;
+            public final Text confirmLabel;
+            public final Text tooltip;
+            public final Text confirmTooltip;
+
+            public final Runnable onClick;
+
+            public ConfirmingButton(Text label, Text confirmLabel, Text tooltip, Text confirmTooltip, Runnable onClick) {
+                this.label = label;
+                this.confirmLabel = confirmLabel;
+                this.tooltip = tooltip;
+                this.confirmTooltip = confirmTooltip;
+                this.onClick = onClick;
+            }
+
+            public ConfirmingButton(Text label, Text tooltip, Text confirmTooltip, Runnable onClick) {
+                this(label, label.copy().formatted(Formatting.RED), tooltip, confirmTooltip, onClick);
+            }
+
+
+            @Override
+            public WidgetState<ConfirmingButton> createState() {
+                return new State();
+            }
+
+            public static class State extends WidgetState<ConfirmingButton> {
+                private boolean confirming = false;
+
+                @Override
+                public Widget build(BuildContext context) {
+                    return new MouseArea(
+                        widget -> widget.exitCallback(() -> this.setState(() -> this.confirming = false)),
+                        new Tooltip(
+                            this.confirming ? this.widget().confirmTooltip : this.widget().tooltip,
+                            new Button(
+                                this.confirming ? this.widget().confirmLabel : this.widget().label,
+                                () -> {
+                                    if (this.confirming) this.widget().onClick.run();
+                                    this.setState(() -> this.confirming = !this.confirming);
+                                }
+                            )
                         )
                     );
                 }
