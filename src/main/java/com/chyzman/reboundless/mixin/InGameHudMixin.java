@@ -2,7 +2,6 @@ package com.chyzman.reboundless.mixin;
 
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
-import com.chyzman.reboundless.api.ReCombination;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
 import com.google.common.base.Strings;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -14,6 +13,7 @@ import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.chyzman.reboundless.Reboundless.CURRENTLY_HELD_KEYS;
 
@@ -34,32 +35,51 @@ public abstract class InGameHudMixin {
 
     @Shadow @Final private DebugHud debugHud;
 
+    @Shadow @Final private MinecraftClient client;
+
     @Inject(method = "method_55807", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/DebugHud;shouldShowDebugHud()Z"))
     private void renderReboundlessDebug(CallbackInfo ci, @Local(argsOnly = true) DrawContext context) {
         if (debugHud.shouldShowDebugHud()) return;
         var text = new ArrayList<String>();
         text.add("Reboundless Debug:");
         text.add("Pressed Keys (In Order):");
-        text.add(CURRENTLY_HELD_KEYS.stream()
-                     .map(InputUtil.Key::getLocalizedText)
-                     .map(Text::getString)
-                     .toList() + "");
+        var pressedKeys = new ArrayList<>(CURRENTLY_HELD_KEYS);
+        var keyGroups = pressedKeys.stream().collect(Collectors.groupingBy(key -> pressedKeys.indexOf(key) / MathHelper.ceil(pressedKeys.size() / 5d))).values();
+        text.addAll(
+            keyGroups.stream()
+                .map(group -> group.stream()
+                    .map(InputUtil.Key::getLocalizedText)
+                    .reduce((thisText, thatText) -> thisText.copy().append(", ").append(thatText))
+                    .orElse(Text.empty())
+                    .getString())
+                .toList());
+        for (int i = 0; i < 5 - keyGroups.size(); i++) text.add("");
+        text.add("");
         text.add("Active KeyBindings (In no particular order):");
-        text.add(Arrays.stream(MinecraftClient.getInstance().options.allKeys)
-                     .filter(KeyBinding::isPressed)
-                     .map(bind -> Text.translatable(bind.getTranslationKey()).getString() + " " + ((KeyBindingAccessor) bind).reboundless$getTimesPressed())
-                     .toList() + "");
+        var pressedKeyBinds = Arrays.stream(client.options.allKeys).filter(KeyBinding::isPressed).toList();
+        var keyBindGroups = pressedKeyBinds.stream().collect(Collectors.groupingBy(key -> pressedKeyBinds.indexOf(key) / MathHelper.ceil(pressedKeyBinds.size() / 5d))).values();
+        text.addAll(
+            keyBindGroups.stream()
+                .map(group -> group.stream()
+                    .map(bind -> Text.translatable(bind.getTranslationKey()).append(" " + ((KeyBindingAccessor) bind).reboundless$getTimesPressed()))
+                    .reduce((thisText, thatText) -> thisText.append(", ").append(thatText))
+                    .orElse(Text.empty())
+                    .getString())
+                .toList());
+        for (int i = 0; i < 5 - keyBindGroups.size(); i++) text.add("");
+        text.add("");
         text.add("Active ReBindings (In no particular order):");
-        text.add(ReBindings.allReBindings().stream()
-                     .filter(ReBinding::isPressed)
-                     .map(ReBinding::getDisplayedName)
-                     .toList() + "");
-        text.add("Active ReCombos (In no particular order):");
-        text.add(ReBindings.RECOMBINATIONS.stream()
-                     .filter(ReCombination::isPressed)
-                     .map(ReCombination::getBoundText)
-                     .map(Text::getString)
-                     .toList() + "");
+        var pressedReBindings = ReBindings.allReBindings().stream().filter(ReBinding::isPressed).toList();
+        var reBindingGroups = pressedReBindings.stream().collect(Collectors.groupingBy(key -> pressedReBindings.indexOf(key) / MathHelper.ceil(pressedReBindings.size() / 5d))).values();
+        text.addAll(
+            reBindingGroups.stream()
+                .map(group -> group.stream()
+                    .map(ReBinding::getDisplayedName)
+                    .reduce((thisText, thatText) -> thisText.copy().append(", ").append(thatText))
+                    .orElse(Text.empty())
+                    .getString())
+                .toList());
+        for (int i = 0; i < 5 - reBindingGroups.size(); i++) text.add("");
         drawText(context, text, true);
     }
 

@@ -2,7 +2,6 @@ package com.chyzman.reboundless.mixin;
 
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
-import com.chyzman.reboundless.api.ReCombination;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -25,7 +24,7 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
 
     @Shadow private int timesPressed;
     @Shadow private boolean pressed;
-    @Unique private Set<ReBinding> activeRebinds = new HashSet<>();
+    @Unique private final Set<ReBinding> activeRebinds = new HashSet<>();
 
     @Inject(method = "onKeyPressed", at = @At(value = "HEAD"), cancellable = true)
     private static void handleOnKeyPressed(InputUtil.Key key, CallbackInfo ci) {
@@ -35,7 +34,7 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
     @Inject(method = "setKeyPressed", at = @At(value = "HEAD"), cancellable = true)
     private static void handleSetKeyPressed(InputUtil.Key key, boolean pressed, CallbackInfo ci) {
         ci.cancel();
-        for (ReCombination combo : ReBindings.combinationsByKey(key)) combo.onKey(key, pressed);
+        for (ReBinding bind : ReBindings.reBindingsByKey(key)) bind.onKey(key, pressed);
     }
 
     @Inject(method = "updatePressedStates", at = @At(value = "HEAD"), cancellable = true)
@@ -51,7 +50,7 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
     }
 
     @Override
-    public void reboundless$setPressed(ReBinding reBinding, boolean pressed) {
+    public void reboundless$setPressed(ReBinding reBinding, boolean pressed, int power) {
         var update = false;
         if (pressed) {
             update = activeRebinds.add(reBinding);
@@ -59,7 +58,7 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
             update = activeRebinds.remove(reBinding);
         }
         if (update) {
-            if (pressed) timesPressed += reBinding.pressPower();
+            if (pressed) timesPressed += power;
             reboundless$updateState();
         }
     }

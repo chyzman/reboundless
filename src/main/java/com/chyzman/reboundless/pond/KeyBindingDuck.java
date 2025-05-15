@@ -4,7 +4,7 @@ import com.chyzman.reboundless.api.ReBinding;
 
 public interface KeyBindingDuck {
 
-    default void reboundless$setPressed(ReBinding reBinding, boolean pressed) {
+    default void reboundless$setPressed(ReBinding reBinding, boolean pressed, int power) {
         throw new UnsupportedOperationException("Implemented by Mixin");
     }
 

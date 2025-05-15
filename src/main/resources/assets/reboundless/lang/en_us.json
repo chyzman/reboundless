@@ -1,11 +1,17 @@
 {
-  "controls.reboundless.keybinds.keybind.reset": "⇄",
+  "controls.keybinds.title": [
+    "Re ",
+    {"text": "Key", "strikethrough": true},
+    " Binds"
+  ],
+
+  "controls.reboundless.keybinds.keybind.revert": "⇄",
+  "controls.reboundless.keybinds.keybind.revert.tooltip": "Revert Keybind",
+  "controls.reboundless.keybinds.keybind.revert.tooltip.confirm": "Are you sure you want to revert this keybind?",
+
+  "controls.reboundless.keybinds.keybind.reset": "☠",
   "controls.reboundless.keybinds.keybind.reset.tooltip": "Reset Keybind",
   "controls.reboundless.keybinds.keybind.reset.tooltip.confirm": "Are you sure you want to reset this keybind?",
-
-  "controls.reboundless.keybinds.keybind.clear": "☠",
-  "controls.reboundless.keybinds.keybind.clear.tooltip": "Clear Keybind",
-  "controls.reboundless.keybinds.keybind.clear.tooltip.confirm": "Are you sure you want to clear this keybind?",
 
   "controls.reboundless.keybinds.keybind.settings": "···",
 
