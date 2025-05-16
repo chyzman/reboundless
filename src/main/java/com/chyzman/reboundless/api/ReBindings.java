@@ -54,7 +54,7 @@ public class ReBindings {
         KEY_TO_REBINDING.clear();
         KEYBINDING_TO_REBINDING.clear();
         for (ReBinding reBinding : REBINDINGS) {
-            for (InputUtil.Key key : reBinding.properties.getRelevantKeys()) KEY_TO_REBINDING.put(key, reBinding);
+            for (InputUtil.Key key : reBinding.properties.relevantKeys()) KEY_TO_REBINDING.put(key, reBinding);
             if (reBinding.properties.keybinding() != null) KEYBINDING_TO_REBINDING.put(reBinding.properties.keybinding(), reBinding);
         }
     }
@@ -78,7 +78,7 @@ public class ReBindings {
         var unused = Arrays.stream(allKeys).filter(keyBinding -> !usedKeyBindings.contains(keyBinding) && !unbound.contains(keyBinding)).toList();
         for (KeyBinding keyBinding : unused) {
             var reBinding = new ReBinding(keyBinding);
-            reBinding.properties.key(((KeyBindingAccessor) keyBinding).reboundless$getBoundKey());
+            reBinding.properties.replaceKeys(List.of(((KeyBindingAccessor) keyBinding).reboundless$getBoundKey()));
             allReBindings().add(reBinding);
         }
         reCache();

@@ -1,8 +1,10 @@
 package com.chyzman.reboundless.screen.widget;
 
 import com.chyzman.reboundless.Reboundless;
+import com.chyzman.reboundless.api.CategoryMode;
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
+import com.chyzman.reboundless.api.SortingMode;
 import io.wispforest.owo.braid.core.Alignment;
 import io.wispforest.owo.braid.core.Insets;
 import io.wispforest.owo.braid.framework.BuildContext;
@@ -27,6 +29,11 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import static net.minecraft.client.gui.screen.Screen.FOOTER_SEPARATOR_TEXTURE;
 
 public class ReBoundlessWidget extends StatefulWidget {
@@ -50,6 +57,9 @@ public class ReBoundlessWidget extends StatefulWidget {
     }
 
     public static class State extends WidgetState<ReBoundlessWidget> {
+        CategoryMode categoryMode = CategoryMode.MOD;
+        SortingMode sortingMode = SortingMode.ALPHABETICAL;
+
         @Override
         public Widget build(BuildContext context) {
             return new SharedState<>(
@@ -73,17 +83,29 @@ public class ReBoundlessWidget extends StatefulWidget {
                                     Alignment.CENTER,
                                     new VerticallyScrollable(
                                         new Row(
-                                            new Sized(50, null, new Label(Text.literal("FUCKING WORK"))),
+                                            new Padding(50),
                                             new Flexible(
                                                 0.6,
                                                 new Padding(
                                                     Insets.all(3).withTop(0),
                                                     new Column(
-                                                        ReBindings.allReBindings().stream().map(ReBinding::createConfigWidget).toList()
+                                                        ReBindings.allReBindings().stream()
+                                                            .collect(Collectors.groupingBy(rebind -> categoryMode.category.apply(rebind)))
+                                                            .entrySet().stream()
+                                                            .sorted(Map.Entry.comparingByKey(categoryMode.comparator))
+                                                            .map(stringListEntry -> new Column(
+                                                                new Label(LabelStyle.SHADOW, false, categoryMode.label.apply(stringListEntry.getKey())),
+                                                                new Column(
+                                                                    stringListEntry.getValue().stream()
+                                                                        .sorted(sortingMode.comparator)
+                                                                        .map(ReBinding::createConfigWidget)
+                                                                        .toList()
+                                                                )
+                                                            )).toList()
                                                     )
                                                 )
                                             ),
-                                            new Sized(50, null, new Label(Text.literal("FUCKING WORK")))
+                                            new Padding(50)
                                         )
                                     )
                                 )

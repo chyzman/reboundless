@@ -14,6 +14,7 @@ repositories {
     mavenLocal()
     maven { url 'https://maven.wispforest.io/releases' }
     maven { url "https://maven.terraformersmc.com/" }
+    maven {url "https://maven.nucleoid.xyz/" }
 }
 
 dependencies {
@@ -26,6 +27,8 @@ dependencies {
     annotationProcessor modImplementation("io.wispforest:owo-lib:${project.owo_version}")
 
     include("io.wispforest:owo-sentinel:${project.owo_version}")
+
+    modImplementation include("eu.pb4:placeholder-api:${project.placeholder_api_version}")
 
     modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 }

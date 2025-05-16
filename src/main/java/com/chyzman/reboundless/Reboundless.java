@@ -1,5 +1,6 @@
 package com.chyzman.reboundless;
 
+import eu.pb4.placeholders.api.PlaceholderContext;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -19,6 +20,7 @@ public class Reboundless implements ClientModInitializer {
 
     public static final List<InputUtil.Key> CURRENTLY_HELD_KEYS = new ArrayList<>();
 
+    //TODO: decide if still needed
     public static boolean REGISTERING_VANILLA_KEYS = false;
 
     public static final InputUtil.Key SCROLL_UP = InputUtil.Type.MOUSE.createFromCode(100);
@@ -28,8 +30,10 @@ public class Reboundless implements ClientModInitializer {
 
     public static final List<InputUtil.Key> SCROLL_KEYS = List.of(SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT);
 
+    //TODO: decide if still needed
     public static final Pattern TRADITIONAL_KEYBIND_KEY_PATTERN = Pattern.compile("key\\.(.+)\\.");
 
+    //TODO: decide if still needed
     public static Map<String, String> MOD_NAME_MAP = new HashMap<>();
 
     @Override

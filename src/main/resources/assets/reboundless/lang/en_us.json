@@ -5,18 +5,23 @@
     " Binds"
   ],
 
-  "controls.reboundless.keybinds.keybind.revert": "⇄",
-  "controls.reboundless.keybinds.keybind.revert.tooltip": "Revert Keybind",
-  "controls.reboundless.keybinds.keybind.revert.tooltip.confirm": "Are you sure you want to revert this keybind?",
+  "controls.reboundless.keybind.revert": "⇄",
+  "controls.reboundless.keybind.revert.tooltip": "Revert Keybind",
+  "controls.reboundless.keybind.revert.tooltip.confirm": "Are you sure you want to revert this keybind?",
 
-  "controls.reboundless.keybinds.keybind.reset": "☠",
-  "controls.reboundless.keybinds.keybind.reset.tooltip": "Reset Keybind",
-  "controls.reboundless.keybinds.keybind.reset.tooltip.confirm": "Are you sure you want to reset this keybind?",
+  "controls.reboundless.keybind.reset": "☠",
+  "controls.reboundless.keybind.reset.tooltip": "Reset Keybind",
+  "controls.reboundless.keybind.reset.tooltip.confirm": "Are you sure you want to reset this keybind?",
 
-  "controls.reboundless.keybinds.keybind.settings": "···",
+  "controls.reboundless.keybind.settings": "···",
 
-  "controls.reboundless.keybinds.keybind.inverted": "Inverted: %s",
-  "controls.reboundless.keybinds.keybind.sticky": "Input Mode: %s",
+  "controls.reboundless.keybind.inverted": "Inverted: %s",
+  "controls.reboundless.keybind.sticky": "Input Mode: %s",
+
+  "controls.reboundless.keybind.overlap.guaranteed.tooltip": "This ReBind will ALWAYS be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.likely.tooltip": "This ReBind will frequently be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.possible.tooltip": "This ReBind might be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.impossible.tooltip": "This ReBind can NEVER be pressed with:\n%s",
 
   "key.categories.unknown": "Unknown",
 

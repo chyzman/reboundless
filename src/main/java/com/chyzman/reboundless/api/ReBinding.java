@@ -10,6 +10,11 @@ import com.chyzman.reboundless.util.KeyUtil;
 import com.chyzman.reboundless.util.ReboundlessEndecs;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import eu.pb4.placeholders.api.PlaceholderContext;
+import eu.pb4.placeholders.api.Placeholders;
+import eu.pb4.placeholders.api.TextParserUtils;
+import eu.pb4.placeholders.api.node.TextNode;
+import eu.pb4.placeholders.api.parsers.TagParser;
 import io.wispforest.endec.Endec;
 import io.wispforest.endec.impl.StructEndecBuilder;
 import io.wispforest.owo.braid.core.Alignment;
@@ -35,6 +40,7 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.text.Texts;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
@@ -79,8 +85,8 @@ public class ReBinding {
 
     public ReBinding(
         String name,
-        InputUtil.Key key,
-        List<InputUtil.Key> modifiers,
+        String category,
+        List<InputUtil.Key> keys,
         boolean ordered,
         Set<InputUtil.Key> exceptions,
         boolean isWhitelist,
@@ -91,7 +97,20 @@ public class ReBinding {
         int pressPower,
         @Nullable KeyBinding keybinding
     ) {
-        this(new Properties(name, key, modifiers, ordered, exceptions, isWhitelist, sticky, inverted, debounce, pressesRequired, pressPower, keybinding));
+        this(new Properties(
+            name,
+            category,
+            keys,
+            ordered,
+            exceptions,
+            isWhitelist,
+            sticky,
+            inverted,
+            debounce,
+            pressesRequired,
+            pressPower,
+            keybinding
+        ));
     }
 
     public ReBinding(KeyBinding key) {
@@ -101,7 +120,7 @@ public class ReBinding {
     //endregion
 
     public void onKey(InputUtil.Key key, boolean pressed) {
-        if (!properties.key.equals(key)) return;
+        if (!Objects.equals(properties.key(), key)) return;
 
         var now = System.currentTimeMillis();
 
@@ -109,12 +128,7 @@ public class ReBinding {
             if (now - lastUpdated > properties.debounce) return;
         }
 
-        var currentlyHeld = new ArrayList<>(Reboundless.CURRENTLY_HELD_KEYS);
-
-        if (pressed) {
-            if (!properties.modifiersMatch(currentlyHeld)) return;
-            if (!properties.exceptionsMatch(currentlyHeld)) return;
-        }
+        if (pressed && !properties.keysMatch(Reboundless.CURRENTLY_HELD_KEYS) || !properties.exceptionsMatch(Reboundless.CURRENTLY_HELD_KEYS)) return;
 
         if (setPressed(pressed) && properties.keybinding != null) {
             ((KeyBindingDuck) properties.keybinding).reboundless$setPressed(this, pressed, properties.pressPower);
@@ -173,42 +187,7 @@ public class ReBinding {
     }
 
     public Text getDisplayedName() {
-        return properties.name.isBlank() && properties.keybinding != null ? Text.translatable(properties.keybinding.getTranslationKey()) : Text.translatable(properties.name);
-    }
-
-    public Text getBoundText() {
-        var text = Text.empty();
-        if (!properties.modifiers.isEmpty()) {
-            for (InputUtil.Key modifier : properties.modifiers.reversed()) {
-                text.append(modifier.getLocalizedText());
-                text.append(" + ");
-            }
-        }
-        text.append(properties.key.getLocalizedText());
-        return text;
-    }
-
-    public Text getEditingText() {
-        var text = Text.empty();
-        var useBinding = Reboundless.CURRENTLY_HELD_KEYS.isEmpty();
-
-        text.append(Text.literal("> "));
-
-        var center = Text.empty();
-        if (useBinding) {
-            center.append(getBoundText());
-        } else {
-            for (InputUtil.Key heldKey : Reboundless.CURRENTLY_HELD_KEYS) {
-                center.append(heldKey.getLocalizedText())
-                    .append(Text.literal(" + "));
-            }
-            center.append(Text.literal("..."));
-        }
-        text.append(center.formatted(Formatting.WHITE, Formatting.UNDERLINE));
-
-        text.append(Text.literal(" <"));
-
-        return text.formatted(Formatting.YELLOW);
+        return properties.name.isBlank() && properties.keybinding != null ? Text.translatable(properties.keybinding.getTranslationKey()) : TagParser.DEFAULT_SAFE.parseNode(properties.name).toText();
     }
 
     public ConfigWidget createConfigWidget() {
@@ -219,7 +198,7 @@ public class ReBinding {
 
         public static final Properties EMPTY = new Properties(
             "",
-            InputUtil.UNKNOWN_KEY,
+            "",
             List.of(),
             false,
             Set.of(),
@@ -236,12 +215,12 @@ public class ReBinding {
 
         private String name;
 
-        private InputUtil.Key key;
+        private String category;
 
-        private final List<InputUtil.Key> modifiers;
+        private final ArrayList<InputUtil.Key> keys;
         private boolean ordered;
 
-        private final Set<InputUtil.Key> exceptions;
+        private final HashSet<InputUtil.Key> exceptions;
         private boolean isWhitelist;
 
         private boolean sticky;
@@ -263,8 +242,8 @@ public class ReBinding {
 
         public static final Endec<Properties> ENDEC = StructEndecBuilder.of(
             EndecUtil.optionalFieldOfEmptyCheck("name", Endec.STRING, o -> o.name, () -> EMPTY.name),
-            EndecUtil.optionalFieldOfEmptyCheck("key", ReboundlessEndecs.KEY, o -> o.key, () -> EMPTY.key),
-            EndecUtil.optionalFieldOfEmptyCheck("modifiers", ReboundlessEndecs.KEY.listOf(), o -> o.modifiers, () -> new ArrayList<>(EMPTY.modifiers)),
+            EndecUtil.optionalFieldOfEmptyCheck("category", Endec.STRING, o -> o.category, () -> EMPTY.category),
+            EndecUtil.optionalFieldOfEmptyCheck("keys", ReboundlessEndecs.KEY.listOf(), o -> o.keys, () -> new ArrayList<>(EMPTY.keys)),
             EndecUtil.optionalFieldOfEmptyCheck("ordered", Endec.BOOLEAN, o -> o.ordered, () -> EMPTY.ordered),
             EndecUtil.optionalFieldOfEmptyCheck("exceptions", ReboundlessEndecs.KEY.setOf(), o -> o.exceptions, () -> new HashSet<>(EMPTY.exceptions)),
             EndecUtil.optionalFieldOfEmptyCheck("whitelist", Endec.BOOLEAN, o -> o.isWhitelist, () -> EMPTY.isWhitelist),
@@ -283,8 +262,8 @@ public class ReBinding {
 
         public Properties(
             String name,
-            InputUtil.Key key,
-            List<InputUtil.Key> modifiers,
+            String category,
+            Collection<InputUtil.Key> keys,
             boolean ordered,
             Set<InputUtil.Key> exceptions,
             boolean isWhitelist,
@@ -296,10 +275,10 @@ public class ReBinding {
             @Nullable KeyBinding keybinding
         ) {
             this.name = name;
-            this.key = key;
-            this.modifiers = modifiers;
+            this.category = category;
+            this.keys = new ArrayList<>(keys);
             this.ordered = ordered;
-            this.exceptions = exceptions;
+            this.exceptions = new HashSet<>(exceptions);
             this.isWhitelist = isWhitelist;
             this.sticky = sticky;
             this.inverted = inverted;
@@ -307,13 +286,15 @@ public class ReBinding {
             this.pressesRequired = pressesRequired;
             this.pressPower = pressPower;
             this.keybinding = keybinding;
+            this.sanitizeKeys();
+            this.sanitizeExceptions();
         }
 
         public Properties(Properties properties) {
             this(
                 properties.name,
-                properties.key,
-                new ArrayList<>(properties.modifiers),
+                properties.category,
+                new ArrayList<>(properties.keys),
                 properties.ordered,
                 new HashSet<>(properties.exceptions),
                 properties.isWhitelist,
@@ -329,8 +310,8 @@ public class ReBinding {
         public static Properties fromKeyBinding(KeyBinding keyBinding) {
             return new Properties(
                 "",
-                keyBinding.getDefaultKey(),
-                new ArrayList<>(EMPTY.modifiers),
+                keyBinding.getCategory(),
+                new ArrayList<>(List.of(keyBinding.getDefaultKey())),
                 EMPTY.ordered,
                 new HashSet<>(EMPTY.exceptions),
                 EMPTY.isWhitelist,
@@ -345,9 +326,8 @@ public class ReBinding {
 
         public void apply(Properties that) {
             this.name = that.name;
-            this.key = that.key;
-            this.modifiers.clear();
-            this.modifiers.addAll(that.modifiers);
+            this.category = that.category;
+            this.replaceKeys(that.keys);
             this.ordered = that.ordered;
             this.exceptions.clear();
             this.exceptions.addAll(that.exceptions);
@@ -375,45 +355,43 @@ public class ReBinding {
             return this;
         }
 
+        //category
+
+        public String category() {
+            return category;
+        }
+
+        public Properties category(String category) {
+            this.category = category;
+            return this;
+        }
+
         //key
 
-        public InputUtil.Key key() {
-            return key;
+        public @Nullable InputUtil.Key key() {
+            return keys.isEmpty() ? null : keys.getLast();
         }
-
-        public Properties key(InputUtil.Key key) {
-            this.key = key;
-            sanitizeModifiers();
-            sanitizeExceptions();
-            return this;
-        }
-
-        //modifiers
 
         public List<InputUtil.Key> modifiers() {
-            return new ArrayList<>(modifiers);
+            return new ArrayList<>(keys).subList(0, keys.size() - 1);
         }
 
-        public boolean addModifier(InputUtil.Key modifier) {
-            this.modifiers.add(modifier);
-            sanitizeModifiers();
+        public List<InputUtil.Key> relevantKeys() {
+            return new ArrayList<>(keys);
+        }
+
+        public Properties replaceKeys(Collection<InputUtil.Key> keys) {
+            this.keys.clear();
+            this.keys.addAll(keys);
+            sanitizeKeys();
             sanitizeExceptions();
-            return this.modifiers.contains(modifier);
-        }
-
-        public boolean removeModifier(InputUtil.Key modifier) {
-            return this.modifiers.remove(modifier);
-        }
-
-        public Properties replaceModifiers(Collection<InputUtil.Key> modifiers) {
-            this.modifiers.clear();
-            this.modifiers.addAll(modifiers);
-            sanitizeModifiers();
             return this;
         }
 
-        public void sanitizeModifiers() {
-            this.modifiers.removeIf(modifier -> !KeyUtil.isValid(modifier) || modifier.equals(key));
+        public void sanitizeKeys() {
+            var sanitized = this.keys.reversed().stream().distinct().filter(KeyUtil::isValid).toList().reversed();
+            this.keys.clear();
+            this.keys.addAll(sanitized);
         }
 
         //ordered
@@ -451,7 +429,7 @@ public class ReBinding {
         }
 
         public void sanitizeExceptions() {
-            this.exceptions.removeIf(exception -> !KeyUtil.isValid(exception) || getRelevantKeys().contains(exception));
+            this.exceptions.removeIf(exception -> !KeyUtil.isValid(exception) || relevantKeys().contains(exception));
         }
 
         //isWhitelist
@@ -533,35 +511,29 @@ public class ReBinding {
 
         //endregion
 
-        public List<InputUtil.Key> getRelevantKeys() {
-            var keys = new ArrayList<>(this.modifiers);
-            keys.add(this.key);
-            return keys;
+        @SuppressWarnings("SpellCheckingInspection")
+        public boolean unpressable() {
+            if (this.keybinding == null) return true;
+            if (!KeyUtil.isValid(this.key())) return true;
+            return false;
         }
 
-        public boolean canBePressed() {
-            if (this.key == InputUtil.UNKNOWN_KEY) return false;
-            if (this.keybinding == null) return false;
-            return true;
-        }
-
-        public boolean modifiersMatch(List<InputUtil.Key> keys) {
-            if (modifiers.isEmpty()) return true;
-            if (keys.size() < modifiers.size()) return false;
+        public boolean keysMatch(List<InputUtil.Key> keys) {
+            if (keys.isEmpty()) return true;
+            if (keys.size() < relevantKeys().size()) return false;
             if (ordered) {
                 var important = new ArrayList<>(keys);
-                important.retainAll(modifiers);
-                return important.equals(modifiers);
+                important.retainAll(relevantKeys());
+                return important.equals(relevantKeys());
             }
-            return new HashSet<>(keys).containsAll(modifiers);
+            return new HashSet<>(keys).containsAll(keys);
         }
 
         public boolean exceptionsMatch(List<InputUtil.Key> keys) {
             if (!isWhitelist && exceptions.isEmpty()) return true;
 
             var stripped = new HashSet<>(keys);
-            stripped.remove(key);
-            modifiers.forEach(stripped::remove);
+            stripped.removeIf(relevantKeys()::contains);
 
             if (isWhitelist) {
                 return exceptions.containsAll(stripped);
@@ -583,8 +555,7 @@ public class ReBinding {
                    pressesRequired == that.pressesRequired &&
                    pressPower == that.pressPower &&
                    Objects.equals(name, that.name) &&
-                   Objects.equals(key, that.key) &&
-                   Objects.equals(modifiers, that.modifiers) &&
+                   Objects.equals(keys, that.keys) &&
                    Objects.equals(exceptions, that.exceptions) &&
                    Objects.equals(keybinding, that.keybinding);
         }
@@ -593,8 +564,7 @@ public class ReBinding {
         public int hashCode() {
             return Objects.hash(
                 name,
-                key,
-                modifiers,
+                keys,
                 ordered,
                 exceptions,
                 isWhitelist,
@@ -635,7 +605,7 @@ public class ReBinding {
                     new Sized(
                         null, 20,
                         new Row(
-                            new Padding(Insets.right(3)),
+                            new Padding(3),
                             List.of(
                                 new Flexible(
                                     new Align(
@@ -662,19 +632,19 @@ public class ReBinding {
                                     new ReBindButton()
                                 ),
                                 new Row(
-                                    new Padding(Insets.right(1)),
+                                    new Padding(1),
                                     List.of(
                                         new Sized(
                                             20, 20,
                                             new ConfirmingButton(
-                                                "controls.reboundless.keybinds.keybind.revert",
+                                                "controls.reboundless.keybind.revert",
                                                 isInitial() ? null : () -> setState(ReBinding.this::revertToInitial)
                                             )
                                         ),
                                         new Sized(
                                             20, 20,
                                             new ConfirmingButton(
-                                                "controls.reboundless.keybinds.keybind.reset",
+                                                "controls.reboundless.keybind.reset",
                                                 isDefault() ? null : () -> setState(ReBinding.this::revertToDefault)
 
                                             )
@@ -682,7 +652,7 @@ public class ReBinding {
                                         new Sized(
                                             20, 20,
                                             new Button(
-                                                Text.translatable("controls.reboundless.keybinds.keybind.settings"),
+                                                Text.translatable("controls.reboundless.keybind.settings"),
                                                 () -> this.setState(() -> this.expanded = !this.expanded)
                                             )
                                         )
@@ -700,16 +670,16 @@ public class ReBinding {
                                 new Row(
                                     new Flexible(
                                         new ToggleButton(
-                                            Text.translatable("controls.reboundless.keybinds.keybind.sticky", Text.translatable("options.key.toggle")),
-                                            Text.translatable("controls.reboundless.keybinds.keybind.sticky", Text.translatable("options.key.hold")),
+                                            Text.translatable("controls.reboundless.keybind.sticky", Text.translatable("options.key.toggle")),
+                                            Text.translatable("controls.reboundless.keybind.sticky", Text.translatable("options.key.hold")),
                                             properties.sticky,
                                             enabled -> this.setState(() -> properties.sticky = enabled)
                                         )
                                     ),
                                     new Flexible(
                                         new ToggleButton(
-                                            Text.translatable("controls.reboundless.keybinds.keybind.inverted", Text.translatable("options.true")),
-                                            Text.translatable("controls.reboundless.keybinds.keybind.inverted", Text.translatable("options.false")),
+                                            Text.translatable("controls.reboundless.keybind.inverted", Text.translatable("options.true")),
+                                            Text.translatable("controls.reboundless.keybind.inverted", Text.translatable("options.false")),
                                             properties.inverted,
                                             enabled -> this.setState(() -> properties.inverted = enabled)
                                         )
@@ -729,34 +699,26 @@ public class ReBinding {
                         new Padding(Insets.right(3)),
                         Arrays.stream(Overlap.values())
                             .filter(overlap -> !overlaps.get(overlap).isEmpty())
-                            .map(overlap -> new OverLapWidget(overlap, overlaps.get(overlap).stream().toList())).toList()
-                    );
-                }
-
-                public class OverLapWidget extends StatelessWidget {
-                    private final Overlap overlap;
-                    private final List<ReBinding> binds;
-
-                    public OverLapWidget(Overlap overlap, List<ReBinding> binds) {
-                        this.overlap = overlap;
-                        this.binds = binds;
-                    }
-
-                    @Override
-                    public Widget build(BuildContext context) {
-                        return new Padding(
-                            Insets.vertical(1),
-                            new Tooltip(
-                                Text.literal("placeholder for " + overlap.name() + " tooltip")
-                                    .append("\n")
-                                    .append(binds.stream().map(reBinding -> reBinding == null ? "null" : reBinding.getDisplayedName().getString()).toList().toString()),
-                                new Sized(
-                                    3, 18,
-                                    new Box(Color.ofRgb(overlap.color))
+                            .map(overlap -> new Padding(
+                                Insets.vertical(1),
+                                new Tooltip(
+                                    Text.translatable(
+                                        "controls.reboundless.keybind.overlap." + overlap.name().toLowerCase(Locale.ROOT) + ".tooltip",
+                                        Texts.join(
+                                            overlaps.get(overlap).stream()
+                                                .filter(Objects::nonNull)
+                                                .map(ReBinding::getDisplayedName)
+                                                .toList(),
+                                            Text.literal("\n")
+                                        )
+                                    ),
+                                    new Sized(
+                                        3, 18,
+                                        new Box(Color.ofRgb(overlap.color))
+                                    )
                                 )
-                            )
-                        );
-                    }
+                            )).toList()
+                    );
                 }
             }
 
@@ -764,8 +726,7 @@ public class ReBinding {
                 GUARANTEED(DyeColor.RED.getFireworkColor()),
                 LIKELY(DyeColor.ORANGE.getFireworkColor()),
                 POSSIBLE(DyeColor.YELLOW.getFireworkColor()),
-                IMPOSSIBLE(DyeColor.LIME.getFireworkColor()),
-                UNPRESSABLE(DyeColor.GRAY.getFireworkColor());
+                IMPOSSIBLE(DyeColor.LIME.getFireworkColor());
 
                 public final int color;
 
@@ -776,23 +737,12 @@ public class ReBinding {
                 public static HashMultimap<Overlap, ReBinding> findOverlaps(ReBinding bind) {
                     var overlaps = HashMultimap.<Overlap, ReBinding>create();
                     var a = bind.properties;
-                    if (!a.canBePressed()) {
-                        overlaps.put(UNPRESSABLE, null);
-                        return overlaps;
-                    }
-                    var random = new Random();
-                    for (ReBinding otherBind : ReBindings.allReBindings()) {
-                        if (otherBind == bind) continue;
-                        var b = otherBind.properties;
-                        if (!b.canBePressed() || !b.canBePressed()) return overlaps;
-                        if (!a.exceptionsMatch(b.getRelevantKeys()) || !b.exceptionsMatch(a.getRelevantKeys())) {
-                            overlaps.put(IMPOSSIBLE, otherBind);
-                            continue;
-                        }
-                        for (Overlap value : Overlap.values()) {
-                            if (random.nextInt(10) == 0) {
-                                overlaps.put(value, otherBind);
-                            }
+                    for (ReBinding other : ReBindings.allReBindings()) {
+                        if (other == bind) continue;
+                        var b = other.properties;
+                        if (a.unpressable() || b.unpressable()) continue;
+                        if (!a.exceptionsMatch(b.relevantKeys()) || !b.exceptionsMatch(a.relevantKeys())) {
+                            overlaps.put(IMPOSSIBLE, other);
                         }
                         //possibly garunteed logic
 //                        if (!a.key.equals(b.key)) return false;
@@ -820,17 +770,12 @@ public class ReBinding {
                         new Sized(
                             null, 20,
                             new Button(
-                                state.selected == ReBinding.this ? getEditingText() : getBoundText(),
+                                getLabel(state.selected == ReBinding.this),
                                 state.selected == null || state.selected == ReBinding.this ? () -> SharedState.set(ctx, ReBoundlessWidget.ReBindingScreenState.class, reBindingScreenState -> {
                                     Reboundless.CURRENTLY_HELD_KEYS.clear();
                                     reBindingScreenState.selected = ReBinding.this;
                                     reBindingScreenState.updateSelected = b -> {
-                                        if (b) {
-                                            var currentlyHeldKeys = new ArrayList<>(Reboundless.CURRENTLY_HELD_KEYS).reversed();
-                                            properties.key(currentlyHeldKeys.getFirst());
-                                            currentlyHeldKeys.removeFirst();
-                                            properties.replaceModifiers(currentlyHeldKeys);
-                                        }
+                                        if (b) properties.replaceKeys(Reboundless.CURRENTLY_HELD_KEYS);
                                         this.setState(() -> {});
                                     };
                                 }) : null
@@ -838,6 +783,22 @@ public class ReBinding {
                         )
                     );
                 }
+            }
+
+            private Text getLabel(boolean editing) {
+                var text = Text.empty();
+                var useHeld = editing && !Reboundless.CURRENTLY_HELD_KEYS.isEmpty();
+
+                text.append(Text.literal("> "));
+
+                var center = Text.empty().append(KeyUtil.boundText(useHeld ? Reboundless.CURRENTLY_HELD_KEYS : properties.relevantKeys()));
+                if (useHeld) center.append(KeyUtil.BOUND_SEPARATOR).append(Text.literal("..."));
+
+                text.append(center.copy().formatted(Formatting.WHITE, Formatting.UNDERLINE));
+
+                text.append(Text.literal(" <"));
+
+                return editing ? text.formatted(Formatting.YELLOW) : center;
             }
         }
 
