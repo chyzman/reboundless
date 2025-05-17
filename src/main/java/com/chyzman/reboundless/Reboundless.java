@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
 public class Reboundless implements ClientModInitializer {
     public static final String MODID = "reboundless";
 
+    public static final String UNKNOWN_CATEGORY = "key.categories.unknown";
+
     public static final List<InputUtil.Key> CURRENTLY_HELD_KEYS = new ArrayList<>();
 
     //TODO: decide if still needed

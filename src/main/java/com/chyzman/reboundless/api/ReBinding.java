@@ -10,10 +10,6 @@ import com.chyzman.reboundless.util.KeyUtil;
 import com.chyzman.reboundless.util.ReboundlessEndecs;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import eu.pb4.placeholders.api.PlaceholderContext;
-import eu.pb4.placeholders.api.Placeholders;
-import eu.pb4.placeholders.api.TextParserUtils;
-import eu.pb4.placeholders.api.node.TextNode;
 import eu.pb4.placeholders.api.parsers.TagParser;
 import io.wispforest.endec.Endec;
 import io.wispforest.endec.impl.StructEndecBuilder;
@@ -46,6 +42,8 @@ import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+
+import static com.chyzman.reboundless.Reboundless.UNKNOWN_CATEGORY;
 
 public class ReBinding {
 
@@ -85,7 +83,6 @@ public class ReBinding {
 
     public ReBinding(
         String name,
-        String category,
         List<InputUtil.Key> keys,
         boolean ordered,
         Set<InputUtil.Key> exceptions,
@@ -99,7 +96,6 @@ public class ReBinding {
     ) {
         this(new Properties(
             name,
-            category,
             keys,
             ordered,
             exceptions,
@@ -198,9 +194,8 @@ public class ReBinding {
 
         public static final Properties EMPTY = new Properties(
             "",
-            "",
             List.of(),
-            false,
+            true,
             Set.of(),
             false,
             false,
@@ -214,8 +209,6 @@ public class ReBinding {
         //region PROPERTIES
 
         private String name;
-
-        private String category;
 
         private final ArrayList<InputUtil.Key> keys;
         private boolean ordered;
@@ -242,7 +235,6 @@ public class ReBinding {
 
         public static final Endec<Properties> ENDEC = StructEndecBuilder.of(
             EndecUtil.optionalFieldOfEmptyCheck("name", Endec.STRING, o -> o.name, () -> EMPTY.name),
-            EndecUtil.optionalFieldOfEmptyCheck("category", Endec.STRING, o -> o.category, () -> EMPTY.category),
             EndecUtil.optionalFieldOfEmptyCheck("keys", ReboundlessEndecs.KEY.listOf(), o -> o.keys, () -> new ArrayList<>(EMPTY.keys)),
             EndecUtil.optionalFieldOfEmptyCheck("ordered", Endec.BOOLEAN, o -> o.ordered, () -> EMPTY.ordered),
             EndecUtil.optionalFieldOfEmptyCheck("exceptions", ReboundlessEndecs.KEY.setOf(), o -> o.exceptions, () -> new HashSet<>(EMPTY.exceptions)),
@@ -262,7 +254,6 @@ public class ReBinding {
 
         public Properties(
             String name,
-            String category,
             Collection<InputUtil.Key> keys,
             boolean ordered,
             Set<InputUtil.Key> exceptions,
@@ -275,7 +266,6 @@ public class ReBinding {
             @Nullable KeyBinding keybinding
         ) {
             this.name = name;
-            this.category = category;
             this.keys = new ArrayList<>(keys);
             this.ordered = ordered;
             this.exceptions = new HashSet<>(exceptions);
@@ -293,7 +283,6 @@ public class ReBinding {
         public Properties(Properties properties) {
             this(
                 properties.name,
-                properties.category,
                 new ArrayList<>(properties.keys),
                 properties.ordered,
                 new HashSet<>(properties.exceptions),
@@ -310,7 +299,6 @@ public class ReBinding {
         public static Properties fromKeyBinding(KeyBinding keyBinding) {
             return new Properties(
                 "",
-                keyBinding.getCategory(),
                 new ArrayList<>(List.of(keyBinding.getDefaultKey())),
                 EMPTY.ordered,
                 new HashSet<>(EMPTY.exceptions),
@@ -326,7 +314,6 @@ public class ReBinding {
 
         public void apply(Properties that) {
             this.name = that.name;
-            this.category = that.category;
             this.replaceKeys(that.keys);
             this.ordered = that.ordered;
             this.exceptions.clear();
@@ -352,17 +339,6 @@ public class ReBinding {
 
         public Properties name(String name) {
             this.name = name;
-            return this;
-        }
-
-        //category
-
-        public String category() {
-            return category;
-        }
-
-        public Properties category(String category) {
-            this.category = category;
             return this;
         }
 
@@ -509,9 +485,15 @@ public class ReBinding {
             return this;
         }
 
+        //categorization
+
+        public String getCategory() {
+            if (keybinding == null || keybinding.getCategory() == null) return UNKNOWN_CATEGORY;
+            return keybinding.getCategory();
+        }
+
         //endregion
 
-        @SuppressWarnings("SpellCheckingInspection")
         public boolean unpressable() {
             if (this.keybinding == null) return true;
             if (!KeyUtil.isValid(this.key())) return true;
@@ -526,7 +508,7 @@ public class ReBinding {
                 important.retainAll(relevantKeys());
                 return important.equals(relevantKeys());
             }
-            return new HashSet<>(keys).containsAll(keys);
+            return new HashSet<>(keys).containsAll(relevantKeys());
         }
 
         public boolean exceptionsMatch(List<InputUtil.Key> keys) {
@@ -626,7 +608,31 @@ public class ReBinding {
                                             )
                                     )
                                 ),
-                                new OverlapsWidget(),
+                                new Row(
+                                    new Padding(Insets.right(3)),
+                                    Arrays.stream(Overlap.values())
+                                        .filter(overlap -> !overlaps.get(overlap).isEmpty())
+                                        .map(overlap -> new Padding(
+                                            Insets.vertical(1),
+                                            new Tooltip(
+                                                Text.translatable(
+                                                    "controls.reboundless.keybind.overlap." + overlap.name().toLowerCase(Locale.ROOT) + ".tooltip",
+                                                    Texts.join(
+                                                        overlaps.get(overlap).stream()
+                                                            .filter(Objects::nonNull)
+                                                            .sorted(SharedState.get(buildContext, ReBoundlessWidget.ReBindingScreenState.class).sortingMode.comparator)
+                                                            .map(ReBinding::getDisplayedName)
+                                                            .toList(),
+                                                        Text.literal("\n")
+                                                    )
+                                                ),
+                                                new Sized(
+                                                    3, 18,
+                                                    new Box(Color.ofRgb(overlap.color))
+                                                )
+                                            )
+                                        )).toList()
+                                ),
                                 new Constrain(
                                     Constraints.ofMinWidth(75),
                                     new ReBindButton()
@@ -691,67 +697,41 @@ public class ReBinding {
                 }
                 return new Column(columnContents);
             }
+        }
 
-            public class OverlapsWidget extends StatelessWidget {
-                @Override
-                public Widget build(BuildContext context) {
-                    return new Row(
-                        new Padding(Insets.right(3)),
-                        Arrays.stream(Overlap.values())
-                            .filter(overlap -> !overlaps.get(overlap).isEmpty())
-                            .map(overlap -> new Padding(
-                                Insets.vertical(1),
-                                new Tooltip(
-                                    Text.translatable(
-                                        "controls.reboundless.keybind.overlap." + overlap.name().toLowerCase(Locale.ROOT) + ".tooltip",
-                                        Texts.join(
-                                            overlaps.get(overlap).stream()
-                                                .filter(Objects::nonNull)
-                                                .map(ReBinding::getDisplayedName)
-                                                .toList(),
-                                            Text.literal("\n")
-                                        )
-                                    ),
-                                    new Sized(
-                                        3, 18,
-                                        new Box(Color.ofRgb(overlap.color))
-                                    )
-                                )
-                            )).toList()
-                    );
-                }
+        public enum Overlap {
+            GUARANTEED(DyeColor.RED.getFireworkColor()),
+            LIKELY(DyeColor.ORANGE.getFireworkColor()),
+            POSSIBLE(DyeColor.YELLOW.getFireworkColor()),
+            IMPOSSIBLE(DyeColor.LIME.getFireworkColor()),
+            SAMEFUNCTIONALITY(DyeColor.BLUE.getFireworkColor());
+
+            public final int color;
+
+            Overlap(int color) {
+                this.color = color;
             }
 
-            public enum Overlap {
-                GUARANTEED(DyeColor.RED.getFireworkColor()),
-                LIKELY(DyeColor.ORANGE.getFireworkColor()),
-                POSSIBLE(DyeColor.YELLOW.getFireworkColor()),
-                IMPOSSIBLE(DyeColor.LIME.getFireworkColor());
-
-                public final int color;
-
-                Overlap(int color) {
-                    this.color = color;
-                }
-
-                public static HashMultimap<Overlap, ReBinding> findOverlaps(ReBinding bind) {
-                    var overlaps = HashMultimap.<Overlap, ReBinding>create();
-                    var a = bind.properties;
-                    for (ReBinding other : ReBindings.allReBindings()) {
-                        if (other == bind) continue;
-                        var b = other.properties;
-                        if (a.unpressable() || b.unpressable()) continue;
-                        if (!a.exceptionsMatch(b.relevantKeys()) || !b.exceptionsMatch(a.relevantKeys())) {
-                            overlaps.put(IMPOSSIBLE, other);
-                        }
-                        //possibly garunteed logic
-//                        if (!a.key.equals(b.key)) return false;
-//                        var larger = a.modifiers.size() > b.modifiers.size() ? a : b;
-//                        var smaller = larger == a ? b : a;
-
+            public static HashMultimap<Overlap, ReBinding> findOverlaps(ReBinding bind) {
+                var overlaps = HashMultimap.<Overlap, ReBinding>create();
+                var a = bind.properties;
+                for (ReBinding other : ReBindings.allReBindings()) {
+                    if (other == bind) continue;
+                    var b = other.properties;
+                    if (a.unpressable() || b.unpressable()) continue;
+                    if (a.keybinding != null && a.keybinding.equals(b.keybinding)) overlaps.put(SAMEFUNCTIONALITY, other);
+                    if (!a.exceptionsMatch(b.relevantKeys()) || !b.exceptionsMatch(a.relevantKeys())) {
+                        overlaps.put(IMPOSSIBLE, other);
+                        continue;
                     }
-                    return overlaps;
+                    var guaranteed = a.relevantKeys().equals(b.relevantKeys());
+                    if (guaranteed) {
+                        overlaps.put(GUARANTEED, other);
+                    } else if (a.keysMatch(b.relevantKeys()) || b.keysMatch(a.relevantKeys())) {
+                        overlaps.put(POSSIBLE, other);
+                    }
                 }
+                return overlaps;
             }
         }
 

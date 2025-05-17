@@ -13,6 +13,7 @@ import io.wispforest.owo.braid.framework.widget.StatefulWidget;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.braid.widgets.Button;
 import io.wispforest.owo.braid.widgets.basic.*;
+import io.wispforest.owo.braid.widgets.cycle.EnumCyclingButton;
 import io.wispforest.owo.braid.widgets.flex.Column;
 import io.wispforest.owo.braid.widgets.flex.Flexible;
 import io.wispforest.owo.braid.widgets.flex.Row;
@@ -31,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -54,12 +56,12 @@ public class ReBoundlessWidget extends StatefulWidget {
     public static class ReBindingScreenState extends SharableState {
         public @Nullable Object selected = null;
         public @Nullable BooleanConsumer updateSelected = null;
+
+        public SortingMode sortingMode = SortingMode.ALPHABETICAL;
+        public CategoryMode categoryMode = CategoryMode.VANILLA;
     }
 
     public static class State extends WidgetState<ReBoundlessWidget> {
-        CategoryMode categoryMode = CategoryMode.MOD;
-        SortingMode sortingMode = SortingMode.ALPHABETICAL;
-
         @Override
         public Widget build(BuildContext context) {
             return new SharedState<>(
@@ -90,14 +92,15 @@ public class ReBoundlessWidget extends StatefulWidget {
                                                     Insets.all(3).withTop(0),
                                                     new Column(
                                                         ReBindings.allReBindings().stream()
-                                                            .collect(Collectors.groupingBy(rebind -> categoryMode.category.apply(rebind)))
+                                                            //TODO: make none actually work
+                                                            .collect(Collectors.groupingBy(rebind -> SharedState.get(ctx, ReBindingScreenState.class).categoryMode.equals(CategoryMode.NONE) ? "" : SharedState.get(ctx, ReBindingScreenState.class).categoryMode.getCategory(rebind)))
                                                             .entrySet().stream()
-                                                            .sorted(Map.Entry.comparingByKey(categoryMode.comparator))
+                                                            .sorted(Map.Entry.comparingByKey(SharedState.get(ctx, ReBindingScreenState.class).categoryMode.getComparator()))
                                                             .map(stringListEntry -> new Column(
-                                                                new Label(LabelStyle.SHADOW, false, categoryMode.label.apply(stringListEntry.getKey())),
+                                                                new Label(LabelStyle.SHADOW, false, SharedState.get(ctx, ReBindingScreenState.class).categoryMode.getLabel(stringListEntry.getKey())),
                                                                 new Column(
                                                                     stringListEntry.getValue().stream()
-                                                                        .sorted(sortingMode.comparator)
+                                                                        .sorted(SharedState.get(ctx, ReBindingScreenState.class).sortingMode.comparator)
                                                                         .map(ReBinding::createConfigWidget)
                                                                         .toList()
                                                                 )
@@ -120,7 +123,21 @@ public class ReBoundlessWidget extends StatefulWidget {
                                     null, 45d,
                                     new Padding(
                                         Insets.horizontal(50),
-                                        new Button(ScreenTexts.DONE, () -> MinecraftClient.getInstance().currentScreen.close())
+                                        new Column(
+                                            new Row(
+                                                new EnumCyclingButton<>(
+                                                    SharedState.get(ctx, ReBindingScreenState.class).sortingMode,
+                                                    mode -> Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sortMode." + mode.toString().toLowerCase(Locale.ROOT))),
+                                                    mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.sortingMode = mode)
+                                                ),
+                                                new EnumCyclingButton<>(
+                                                    SharedState.get(ctx, ReBindingScreenState.class).categoryMode,
+                                                    mode -> Text.translatable("controls.reboundless.keybinds.categoryMode", Text.translatable("controls.reboundless.keybinds.categoryMode." + mode.toString().toLowerCase(Locale.ROOT))),
+                                                    mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.categoryMode = mode)
+                                                )
+                                            ),
+                                            new Button(ScreenTexts.DONE, () -> MinecraftClient.getInstance().currentScreen.close())
+                                        )
                                     )
                                 )
                             )

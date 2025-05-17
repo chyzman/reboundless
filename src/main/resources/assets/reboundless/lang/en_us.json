@@ -1,7 +1,10 @@
 {
   "controls.keybinds.title": [
     "Re ",
-    {"text": "Key", "strikethrough": true},
+    {
+      "text": "Key",
+      "strikethrough": true
+    },
     " Binds"
   ],
 
@@ -24,6 +27,17 @@
   "controls.reboundless.keybind.overlap.impossible.tooltip": "This ReBind can NEVER be pressed with:\n%s",
 
   "key.categories.unknown": "Unknown",
+
+  "controls.reboundless.keybinds.sortMode": "Sort: %s",
+
+  "controls.reboundless.keybinds.sortMode.alphabetical": "Alphabetical",
+  "controls.reboundless.keybinds.sortMode.registry": "Registry",
+
+  "controls.reboundless.keybinds.categoryMode": "Categories: %s",
+
+  "controls.reboundless.keybinds.categoryMode.vanilla": "Vanilla",
+  "controls.reboundless.keybinds.categoryMode.mod": "Mods",
+  "controls.reboundless.keybinds.categoryMode.none": "None",
 
   "options.true": "True",
   "options.false": "False",
