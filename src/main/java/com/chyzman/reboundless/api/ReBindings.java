@@ -1,5 +1,6 @@
 package com.chyzman.reboundless.api;
 
+import com.chyzman.reboundless.binding.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
 import com.chyzman.reboundless.util.ReboundlessEndecs;
 import com.google.common.collect.HashMultimap;
@@ -55,7 +56,7 @@ public class ReBindings {
         KEYBINDING_TO_REBINDING.clear();
         for (ReBinding reBinding : REBINDINGS) {
             for (InputUtil.Key key : reBinding.properties.relevantKeys()) KEY_TO_REBINDING.put(key, reBinding);
-            if (reBinding.properties.keybinding() != null) KEYBINDING_TO_REBINDING.put(reBinding.properties.keybinding(), reBinding);
+            if (reBinding.properties.binding() != null && reBinding.properties.binding() instanceof KeyBindBinding keyBindBinding) KEYBINDING_TO_REBINDING.put(keyBindBinding.keyBinding, reBinding);
         }
     }
 
@@ -74,10 +75,10 @@ public class ReBindings {
             string -> KEYBINDING_LIST_ENDEC.decodeFully(GsonDeserializer::of, gson.fromJson(string, JsonElement.class)),
             keyBindingsList -> KEYBINDING_LIST_ENDEC.encodeFully(GsonSerializer::of, keyBindingsList).toString()
         );
-        var usedKeyBindings = allReBindings().stream().map(binding -> binding.properties.keybinding()).toList();
+        var usedKeyBindings = allReBindings().stream().map(binding -> binding.properties.binding()).filter(binding -> binding instanceof KeyBindBinding).map(bindable -> ((KeyBindBinding) bindable).keyBinding).toList();
         var unused = Arrays.stream(allKeys).filter(keyBinding -> !usedKeyBindings.contains(keyBinding) && !unbound.contains(keyBinding)).toList();
         for (KeyBinding keyBinding : unused) {
-            var reBinding = new ReBinding(keyBinding);
+            var reBinding = new ReBinding(new KeyBindBinding(keyBinding).generateProperties());
             reBinding.properties.replaceKeys(List.of(((KeyBindingAccessor) keyBinding).reboundless$getBoundKey()));
             allReBindings().add(reBinding);
         }

@@ -1,6 +1,7 @@
 package com.chyzman.reboundless.api;
 
 import com.chyzman.reboundless.Reboundless;
+import com.chyzman.reboundless.binding.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.KeyBindingRegistryImplAccessor;
 import net.fabricmc.fabric.mixin.client.keybinding.KeyBindingAccessor;
 import net.minecraft.text.Text;
@@ -35,8 +36,10 @@ public enum CategoryMode {
     ),
     MOD(
         bind -> {
-            if (!(KeyBindingRegistryImplAccessor.reboundless$getModdedKeys().contains(bind.properties.keybinding()))) return "minecraft";
-            var pattern = Reboundless.TRADITIONAL_KEYBIND_KEY_PATTERN.matcher(bind.properties.keybinding().getTranslationKey());
+            if (!(bind.properties.binding() instanceof KeyBindBinding keyBindBinding)) return bind.properties.binding().getCategory();
+            var keyBinding = keyBindBinding.keyBinding;
+            if (!(KeyBindingRegistryImplAccessor.reboundless$getModdedKeys().contains(keyBinding))) return "minecraft";
+            var pattern = Reboundless.TRADITIONAL_KEYBIND_KEY_PATTERN.matcher(keyBinding.getTranslationKey());
             if (pattern.find() && MOD_NAME_MAP.containsKey(pattern.group(1))) return pattern.group(1);
             return "";
         },

@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class KeyUtil {
-    public static final Text BOUND_SEPARATOR = Text.literal(" + ").formatted(Formatting.GRAY);
+    public static final Text BOUND_SEPARATOR = Text.literal(" + ");
 
     public static boolean isValid(InputUtil.Key key) {
         if (key == null) return false;

@@ -18,16 +18,6 @@ public abstract class GameOptionsMixin {
     @Shadow @Final static Gson GSON;
     @Shadow @Final public KeyBinding[] allKeys;
 
-    @Inject(method = "<clinit>", at = @At("HEAD"))
-    private static void startRecordingVanillaKeys(CallbackInfo ci) {
-        Reboundless.REGISTERING_VANILLA_KEYS = true;
-    }
-
-    @Inject(method = "<clinit>", at = @At("RETURN"))
-    private static void stopRecordingVanillaKeys(CallbackInfo ci) {
-        Reboundless.REGISTERING_VANILLA_KEYS = false;
-    }
-
     @Inject(method = "accept", at = @At(value = "INVOKE", target = "Lnet/minecraft/sound/SoundCategory;values()[Lnet/minecraft/sound/SoundCategory;"))
     private void loadReBindings(GameOptions.Visitor visitor, CallbackInfo ci) {
         ReBindings.load(visitor, GSON, allKeys);

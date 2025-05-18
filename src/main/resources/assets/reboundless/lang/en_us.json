@@ -39,6 +39,8 @@
   "controls.reboundless.keybinds.categoryMode.mod": "Mods",
   "controls.reboundless.keybinds.categoryMode.none": "None",
 
+  "binding.reboundless.macro": "Macro: \"%s\"",
+
   "options.true": "True",
   "options.false": "False",
 

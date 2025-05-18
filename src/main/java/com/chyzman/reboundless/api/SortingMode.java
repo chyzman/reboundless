@@ -10,7 +10,7 @@ public enum SortingMode {
         //TODO: sort vanilla alphabetically then use fapi modded keys list
         var keys = KeyBindingAccessor.reboundless$getKeysById().values().stream().toList();
         var comparator = Comparator.comparing(
-            (ReBinding binding) -> binding.properties.keybinding() == null ? null : keys.indexOf(binding.properties.keybinding()),
+            (ReBinding binding) -> binding.properties.binding() == null ? null : keys.indexOf(binding.properties.binding()),
             Comparator.nullsLast(Comparator.naturalOrder())
         );
 

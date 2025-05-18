@@ -2,6 +2,8 @@ package com.chyzman.reboundless.mixin;
 
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
+import com.chyzman.reboundless.binding.Bindable;
+import com.chyzman.reboundless.binding.KeyBindBinding;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -18,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Mixin(KeyBinding.class)
-public abstract class KeyBindingMixin implements KeyBindingDuck {
+public class KeyBindingMixin implements KeyBindingDuck {
 
     @Shadow @Final private static Map<String, KeyBinding> KEYS_BY_ID;
 
@@ -47,6 +49,7 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
     private static void handleUnpressAll(CallbackInfo ci) {
         ci.cancel();
         for (KeyBinding binding : KEYS_BY_ID.values()) ((KeyBindingDuck) binding).reboundless$resetState();
+        for (ReBinding reBinding : ReBindings.allReBindings()) if (reBinding.properties.binding() != null && !(reBinding.properties.binding() instanceof KeyBindBinding)) reBinding.properties.binding().reset();
     }
 
     @Override

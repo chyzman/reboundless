@@ -1,6 +1,8 @@
 package com.chyzman.reboundless.api;
 
 import com.chyzman.reboundless.Reboundless;
+import com.chyzman.reboundless.binding.Bindable;
+import com.chyzman.reboundless.binding.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.StickyKeyBindingAccessor;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import com.chyzman.reboundless.screen.widget.ReBoundlessWidget;
@@ -19,7 +21,6 @@ import io.wispforest.owo.braid.core.Insets;
 import io.wispforest.owo.braid.framework.BuildContext;
 import io.wispforest.owo.braid.framework.proxy.WidgetState;
 import io.wispforest.owo.braid.framework.widget.StatefulWidget;
-import io.wispforest.owo.braid.framework.widget.StatelessWidget;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.braid.widgets.Button;
 import io.wispforest.owo.braid.widgets.basic.*;
@@ -92,7 +93,7 @@ public class ReBinding {
         int debounce,
         int pressesRequired,
         int pressPower,
-        @Nullable KeyBinding keybinding
+        @Nullable Bindable keybinding
     ) {
         this(new Properties(
             name,
@@ -109,10 +110,6 @@ public class ReBinding {
         ));
     }
 
-    public ReBinding(KeyBinding key) {
-        this(Properties.fromKeyBinding(key));
-    }
-
     //endregion
 
     public void onKey(InputUtil.Key key, boolean pressed) {
@@ -126,8 +123,8 @@ public class ReBinding {
 
         if (pressed && !properties.keysMatch(Reboundless.CURRENTLY_HELD_KEYS) || !properties.exceptionsMatch(Reboundless.CURRENTLY_HELD_KEYS)) return;
 
-        if (setPressed(pressed) && properties.keybinding != null) {
-            ((KeyBindingDuck) properties.keybinding).reboundless$setPressed(this, pressed, properties.pressPower);
+        if (setPressed(pressed) && properties.binding != null) {
+            properties.binding.setPressed(this, pressed, properties.pressPower);
         }
     }
 
@@ -150,7 +147,7 @@ public class ReBinding {
     }
 
     public void updateState() {
-        if (properties.keybinding != null) ((KeyBindingDuck) properties.keybinding).reboundless$updateState();
+        if (properties.binding != null && properties.binding instanceof KeyBindBinding keyBindBinding) ((KeyBindingDuck) keyBindBinding.keyBinding).reboundless$updateState();
     }
 
     public void resetState() {
@@ -174,16 +171,17 @@ public class ReBinding {
     }
 
     public boolean isDefault() {
-        return properties.equals(Properties.fromKeyBinding(properties.keybinding));
+        return properties.binding == null || properties.equals(properties.binding.generateProperties());
     }
 
     public void revertToDefault() {
-        properties.apply(Properties.fromKeyBinding(properties.keybinding));
+        if (properties.binding == null) return;
+        properties.apply(properties.binding.generateProperties());
         updateState();
     }
 
     public Text getDisplayedName() {
-        return properties.name.isBlank() && properties.keybinding != null ? Text.translatable(properties.keybinding.getTranslationKey()) : TagParser.DEFAULT_SAFE.parseNode(properties.name).toText();
+        return properties.name.isBlank() && properties.binding != null ? properties.binding.getName() : TagParser.DEFAULT_SAFE.parseNode(properties.name).toText();
     }
 
     public ConfigWidget createConfigWidget() {
@@ -227,7 +225,7 @@ public class ReBinding {
         private int pressPower;
 
         @Nullable
-        private KeyBinding keybinding;
+        private Bindable binding;
 
         //endregion
 
@@ -244,7 +242,7 @@ public class ReBinding {
             EndecUtil.optionalFieldOfEmptyCheck("debounce", Endec.INT, o -> o.debounce, () -> EMPTY.debounce),
             EndecUtil.optionalFieldOfEmptyCheck("pressesRequired", Endec.INT, o -> o.pressesRequired, () -> EMPTY.pressesRequired),
             EndecUtil.optionalFieldOfEmptyCheck("pressPower", Endec.INT, o -> o.pressPower, () -> EMPTY.pressPower),
-            EndecUtil.optionalFieldOfEmptyCheck("keybinding", ReboundlessEndecs.KEYBINDING, o -> o.keybinding, () -> EMPTY.keybinding),
+            EndecUtil.optionalFieldOfEmptyCheck("binding", Bindable.ENDEC, o -> o.binding, () -> EMPTY.binding),
             Properties::new
         );
 
@@ -263,7 +261,7 @@ public class ReBinding {
             int debounce,
             int pressesRequired,
             int pressPower,
-            @Nullable KeyBinding keybinding
+            @Nullable Bindable binding
         ) {
             this.name = name;
             this.keys = new ArrayList<>(keys);
@@ -275,9 +273,25 @@ public class ReBinding {
             this.debounce = debounce;
             this.pressesRequired = pressesRequired;
             this.pressPower = pressPower;
-            this.keybinding = keybinding;
+            this.binding = binding;
             this.sanitizeKeys();
             this.sanitizeExceptions();
+        }
+
+        public Properties() {
+            this(
+                EMPTY.name,
+                new ArrayList<>(EMPTY.keys),
+                EMPTY.ordered,
+                new HashSet<>(EMPTY.exceptions),
+                EMPTY.isWhitelist,
+                EMPTY.sticky,
+                EMPTY.inverted,
+                EMPTY.debounce,
+                EMPTY.pressesRequired,
+                EMPTY.pressPower,
+                EMPTY.binding
+            );
         }
 
         public Properties(Properties properties) {
@@ -292,23 +306,7 @@ public class ReBinding {
                 properties.debounce,
                 properties.pressesRequired,
                 properties.pressPower,
-                properties.keybinding
-            );
-        }
-
-        public static Properties fromKeyBinding(KeyBinding keyBinding) {
-            return new Properties(
-                "",
-                new ArrayList<>(List.of(keyBinding.getDefaultKey())),
-                EMPTY.ordered,
-                new HashSet<>(EMPTY.exceptions),
-                EMPTY.isWhitelist,
-                keyBinding instanceof StickyKeyBinding sticky && ((StickyKeyBindingAccessor) sticky).reboundless$getBooleanSupplier().getAsBoolean(),
-                EMPTY.inverted,
-                EMPTY.debounce,
-                EMPTY.pressesRequired,
-                EMPTY.pressPower,
-                keyBinding
+                properties.binding
             );
         }
 
@@ -324,7 +322,7 @@ public class ReBinding {
             this.debounce = that.debounce;
             this.pressesRequired = that.pressesRequired;
             this.pressPower = that.pressPower;
-            this.keybinding = that.keybinding;
+            this.binding = that.binding;
         }
 
         //endregion
@@ -476,26 +474,26 @@ public class ReBinding {
 
         //keybinding
 
-        public KeyBinding keybinding() {
-            return keybinding;
+        public Bindable binding() {
+            return binding;
         }
 
-        public Properties keybinding(KeyBinding keybinding) {
-            this.keybinding = keybinding;
+        public Properties binding(Bindable binding) {
+            this.binding = binding;
             return this;
         }
 
         //categorization
 
         public String getCategory() {
-            if (keybinding == null || keybinding.getCategory() == null) return UNKNOWN_CATEGORY;
-            return keybinding.getCategory();
+            if (binding == null || binding.getCategory() == null) return UNKNOWN_CATEGORY;
+            return binding.getCategory();
         }
 
         //endregion
 
         public boolean unpressable() {
-            if (this.keybinding == null) return true;
+            if (this.binding == null) return true;
             if (!KeyUtil.isValid(this.key())) return true;
             return false;
         }
@@ -539,7 +537,7 @@ public class ReBinding {
                    Objects.equals(name, that.name) &&
                    Objects.equals(keys, that.keys) &&
                    Objects.equals(exceptions, that.exceptions) &&
-                   Objects.equals(keybinding, that.keybinding);
+                   Objects.equals(binding, that.binding);
         }
 
         @Override
@@ -555,7 +553,7 @@ public class ReBinding {
                 debounce,
                 pressesRequired,
                 pressPower,
-                keybinding
+                binding
             );
         }
     }
@@ -690,7 +688,8 @@ public class ReBinding {
                                             enabled -> this.setState(() -> properties.inverted = enabled)
                                         )
                                     )
-                                )
+                                ),
+                                properties.binding.createWidget()
                             )
                         )
                     );
@@ -719,7 +718,7 @@ public class ReBinding {
                     if (other == bind) continue;
                     var b = other.properties;
                     if (a.unpressable() || b.unpressable()) continue;
-                    if (a.keybinding != null && a.keybinding.equals(b.keybinding)) overlaps.put(SAMEFUNCTIONALITY, other);
+                    if (a.binding != null && a.binding.equals(b.binding)) overlaps.put(SAMEFUNCTIONALITY, other);
                     if (!a.exceptionsMatch(b.relevantKeys()) || !b.exceptionsMatch(a.relevantKeys())) {
                         overlaps.put(IMPOSSIBLE, other);
                         continue;

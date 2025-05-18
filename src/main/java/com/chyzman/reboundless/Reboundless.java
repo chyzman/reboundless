@@ -1,5 +1,6 @@
 package com.chyzman.reboundless;
 
+import com.chyzman.reboundless.registry.BindingRegistry;
 import eu.pb4.placeholders.api.PlaceholderContext;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -19,11 +20,10 @@ public class Reboundless implements ClientModInitializer {
     public static final String MODID = "reboundless";
 
     public static final String UNKNOWN_CATEGORY = "key.categories.unknown";
+    public static final String MACRO_CATEGORY = "key.categories.macro";
+
 
     public static final List<InputUtil.Key> CURRENTLY_HELD_KEYS = new ArrayList<>();
-
-    //TODO: decide if still needed
-    public static boolean REGISTERING_VANILLA_KEYS = false;
 
     public static final InputUtil.Key SCROLL_UP = InputUtil.Type.MOUSE.createFromCode(100);
     public static final InputUtil.Key SCROLL_DOWN = InputUtil.Type.MOUSE.createFromCode(101);
@@ -40,6 +40,8 @@ public class Reboundless implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        BindingRegistry.init();
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             SCROLL_KEYS.forEach(key -> {
                 KeyBinding.setKeyPressed(key, false);
