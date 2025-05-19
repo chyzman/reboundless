@@ -21,15 +21,24 @@
   "controls.reboundless.keybind.inverted": "Inverted: %s",
   "controls.reboundless.keybind.sticky": "Input Mode: %s",
 
+  "controls.reboundless.keybind.overlap.guaranteed": "Guaranteed",
   "controls.reboundless.keybind.overlap.guaranteed.tooltip": "This ReBind will ALWAYS be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.likely": "Likely",
   "controls.reboundless.keybind.overlap.likely.tooltip": "This ReBind will frequently be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.possible": "Possible",
   "controls.reboundless.keybind.overlap.possible.tooltip": "This ReBind might be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.impossible": "Impossible",
   "controls.reboundless.keybind.overlap.impossible.tooltip": "This ReBind can NEVER be pressed with:\n%s",
+  "controls.reboundless.keybind.overlap.same_function": "Same Functionality",
+  "controls.reboundless.keybind.overlap.same_function.tooltip": "This ReBind has the same functionality as:\n%s",
+
 
   "key.categories.unknown": "Unknown",
+  "key.categories.macro": "Macro",
 
   "controls.reboundless.keybinds.sortMode": "Sort: %s",
 
+  "controls.reboundless.keybinds.sort.vanilla": "Vanilla",
   "controls.reboundless.keybinds.sortMode.alphabetical": "Alphabetical",
   "controls.reboundless.keybinds.sortMode.registry": "Registry",
 
@@ -40,6 +49,10 @@
   "controls.reboundless.keybinds.categoryMode.none": "None",
 
   "binding.reboundless.macro": "Macro: \"%s\"",
+
+  "binding.reboundless.macro.type.command": "Execute Command",
+  "binding.reboundless.macro.type.message": "Send Chat Message",
+  "binding.reboundless.macro.type.chat": "Autofill Chat",
 
   "options.true": "True",
   "options.false": "False",

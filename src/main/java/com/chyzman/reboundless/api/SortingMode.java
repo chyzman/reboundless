@@ -1,10 +1,13 @@
 package com.chyzman.reboundless.api;
 
+import com.chyzman.reboundless.binding.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
+import net.minecraft.text.Text;
 
 import java.util.Comparator;
 
 public enum SortingMode {
+    VANILLA(Comparator.comparing(binding -> binding.properties.binding() instanceof KeyBindBinding keyBindBinding ? Text.translatable(keyBindBinding.keyBinding.getTranslationKey()).getString() : null, Comparator.nullsLast(Comparator.naturalOrder()))),
     ALPHABETICAL(Comparator.comparing(bind -> bind.getDisplayedName().getString())),
     REGISTRY((bind, other) -> {
         //TODO: sort vanilla alphabetically then use fapi modded keys list

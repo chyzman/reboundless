@@ -18,6 +18,7 @@ import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.text.Text;
 
 import java.util.List;
+import java.util.Objects;
 
 public class KeyBindBinding extends Bindable {
     public KeyBinding keyBinding;
@@ -94,5 +95,17 @@ public class KeyBindBinding extends Bindable {
                 );
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof KeyBindBinding that)) return false;
+        return Objects.equals(keyBinding, that.keyBinding);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(keyBinding);
     }
 }

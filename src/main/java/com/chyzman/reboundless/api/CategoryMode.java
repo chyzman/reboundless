@@ -5,6 +5,7 @@ import com.chyzman.reboundless.binding.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.KeyBindingRegistryImplAccessor;
 import net.fabricmc.fabric.mixin.client.keybinding.KeyBindingAccessor;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Function;
@@ -60,18 +61,18 @@ public enum CategoryMode {
             return Text.translatable(UNKNOWN_CATEGORY);
         }
     ),
-    NONE(null);
+    NONE(binding -> "none");
 
-    private final Function<ReBinding, String> category;
-    private final Comparator<String> comparator;
-    private final Function<String, Text> label;
+    private final @NotNull Function<ReBinding, String> category;
+    private final @NotNull Comparator<String> comparator;
+    private final @NotNull Function<String, Text> label;
 
     //region CONSTRUCTORS
 
     CategoryMode(
-        Function<ReBinding, String> category,
-        Comparator<String> comparator,
-        Function<String, Text> label
+        @NotNull Function<ReBinding, String> category,
+        @NotNull Comparator<String> comparator,
+        @NotNull Function<String, Text> label
     ) {
         this.category = category;
         this.comparator = comparator;
@@ -79,8 +80,8 @@ public enum CategoryMode {
     }
 
     CategoryMode(
-        Function<ReBinding, String> category,
-        Comparator<String> comparator
+        @NotNull Function<ReBinding, String> category,
+        @NotNull Comparator<String> comparator
     ) {
         this(
             category,
@@ -90,8 +91,8 @@ public enum CategoryMode {
     }
 
     CategoryMode(
-        Function<ReBinding, String> category,
-        Function<String, Text> label
+        @NotNull Function<ReBinding, String> category,
+        @NotNull Function<String, Text> label
     ) {
         this(
             category,
@@ -102,7 +103,7 @@ public enum CategoryMode {
 
 
     CategoryMode(
-        Function<ReBinding, String> category
+        @NotNull Function<ReBinding, String> category
     ) {
         this(
             category,

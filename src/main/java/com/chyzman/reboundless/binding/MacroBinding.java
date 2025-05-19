@@ -1,7 +1,6 @@
 package com.chyzman.reboundless.binding;
 
 import com.chyzman.reboundless.api.ReBinding;
-import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
 import com.chyzman.reboundless.registry.BindingRegistry;
 import com.chyzman.reboundless.util.EndecUtil;
 import io.wispforest.endec.Endec;
@@ -11,16 +10,17 @@ import io.wispforest.owo.braid.framework.BuildContext;
 import io.wispforest.owo.braid.framework.proxy.WidgetState;
 import io.wispforest.owo.braid.framework.widget.StatefulWidget;
 import io.wispforest.owo.braid.framework.widget.Widget;
-import io.wispforest.owo.braid.widgets.cycle.CyclingButton;
 import io.wispforest.owo.braid.widgets.cycle.EnumCyclingButton;
 import io.wispforest.owo.braid.widgets.flex.Row;
 import io.wispforest.owo.braid.widgets.textinput.TextBox;
 import io.wispforest.owo.braid.widgets.textinput.TextEditingController;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import static com.chyzman.reboundless.Reboundless.MACRO_CATEGORY;
@@ -65,8 +65,11 @@ public class MacroBinding extends Bindable {
 
     public enum Type {
         COMMAND((client, macro) -> client.player.networkHandler.sendCommand(macro.startsWith("/") ? macro.substring(1) : macro)),
-        CHAT((client, macro) -> client.player.networkHandler.sendChatMessage(macro)),
-        OPEN_CHAT((client, macro) -> client.setScreen(new ChatScreen(macro)));
+        MESSAGE((client, macro) -> client.player.networkHandler.sendChatMessage(macro)),
+        CHAT((client, macro) -> {
+            KeyBinding.unpressAll();
+            client.setScreen(new ChatScreen(macro));
+        });
 
         public final BiConsumer<MinecraftClient, String> action;
 
@@ -115,5 +118,17 @@ public class MacroBinding extends Bindable {
                 );
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MacroBinding that)) return false;
+        return Objects.equals(macro, that.macro) && type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(macro, type);
     }
 }
