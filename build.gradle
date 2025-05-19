@@ -33,7 +33,7 @@ dependencies {
 
     modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 
-    include("me.xdrop:fuzzywuzzy:java:${project.fuzzywuzzy_version}")
+    modImplementation include("me.xdrop:fuzzywuzzy:${project.fuzzywuzzy_version}")
 }
 
 processResources {

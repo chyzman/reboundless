@@ -44,7 +44,7 @@ public class MacroBinding extends Bindable {
 
     @Override
     public Text getName() {
-        return Text.translatable("binding.reboundless.macro", macro);
+        return Text.translatable("binding.reboundless.macro." + this.type.name().toLowerCase(Locale.ROOT), macro);
     }
 
     @Override

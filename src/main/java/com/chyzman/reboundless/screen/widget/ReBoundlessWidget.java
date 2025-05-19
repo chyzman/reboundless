@@ -14,7 +14,6 @@ import io.wispforest.owo.braid.core.cursor.CursorStyle;
 import io.wispforest.owo.braid.framework.BuildContext;
 import io.wispforest.owo.braid.framework.proxy.WidgetState;
 import io.wispforest.owo.braid.framework.widget.StatefulWidget;
-import io.wispforest.owo.braid.framework.widget.StatelessWidget;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.braid.widgets.Button;
 import io.wispforest.owo.braid.widgets.basic.*;
@@ -33,6 +32,8 @@ import io.wispforest.owo.braid.widgets.textinput.TextBox;
 import io.wispforest.owo.braid.widgets.textinput.TextEditingController;
 import io.wispforest.owo.ui.core.Color;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
+import me.xdrop.fuzzywuzzy.FuzzySearch;
+import me.xdrop.fuzzywuzzy.model.BoundExtractedResult;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.EntryListWidget;
@@ -43,11 +44,11 @@ import net.minecraft.text.Texts;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
-import org.apache.commons.compress.utils.Lists;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ReBoundlessWidget extends StatefulWidget {
     private final MinecraftClient client;
@@ -71,7 +72,30 @@ public class ReBoundlessWidget extends StatefulWidget {
         public SortingMode sortingMode = SortingMode.VANILLA;
         public CategoryMode categoryMode = CategoryMode.VANILLA;
 
-        public BindingFiltererererererererer filter = new BindingFiltererererererererer();
+        private String search = "";
+        private TextEditingController searchController = new TextEditingController(search);
+
+        @Nullable
+        private ReBinding overlapFilter = null;
+        @Nullable
+        private ReBindingConfig.Overlap overlapFilterType = null;
+
+        public boolean searchActive() {
+            return !search.isBlank();
+        }
+
+        public boolean matchesFilters(ReBinding binding) {
+            if (overlapFilter != null) {
+                if (overlapFilter == binding) return true;
+                var overlaps = ReBindingConfig.Overlap.findOverlaps(overlapFilter);
+                return overlapFilterType == null ? overlaps.containsValue(binding) : overlaps.get(overlapFilterType).contains(binding);
+            }
+            return true;
+        }
+
+        public boolean isFilterEmpty() {
+            return overlapFilter == null && overlapFilterType == null;
+        }
     }
 
     public static class State extends WidgetState<ReBoundlessWidget> {
@@ -82,6 +106,7 @@ public class ReBoundlessWidget extends StatefulWidget {
                 new Builder(
                     ctx -> {
                         var sharedState = SharedState.get(ctx, ReBindingScreenState.class);
+                        sharedState.searchController.addListener(() -> SharedState.set(ctx, ReBindingScreenState.class, state -> state.search = sharedState.searchController.text()));
                         return new Stack(
                             new Column(
                                 new Sized(
@@ -112,27 +137,26 @@ public class ReBoundlessWidget extends StatefulWidget {
                                             false,
                                             new VerticallyScrollable(
                                                 new Row(
-                                                    sharedState.filter.isEmpty() ?
+                                                    sharedState.isFilterEmpty() ?
                                                         new Padding(50) :
                                                         new Sized(
                                                             50, null,
                                                             new Column(
                                                                 new Padding(3),
                                                                 Util.make(new ArrayList<>(), list -> {
-                                                                    var filter = sharedState.filter;
-                                                                    if (filter.overlapFilter != null) {
+                                                                    if (sharedState.overlapFilter != null) {
                                                                         list.add(new Button(
-                                                                            filter.overlapFilter.getDisplayedName(),
+                                                                            sharedState.overlapFilter.getDisplayedName(),
                                                                             () -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
-                                                                                reBindingScreenState.filter.overlapFilter = null;
-                                                                                reBindingScreenState.filter.overlapFilterType = null;
+                                                                                reBindingScreenState.overlapFilter = null;
+                                                                                reBindingScreenState.overlapFilterType = null;
                                                                             })
                                                                         ));
                                                                     }
-                                                                    if (filter.overlapFilterType != null) {
+                                                                    if (sharedState.overlapFilterType != null) {
                                                                         list.add(new Button(
-                                                                                     Text.translatable("controls.reboundless.keybind.overlap." + filter.overlapFilterType.name().toLowerCase(Locale.ROOT)),
-                                                                                     () -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.filter.overlapFilterType = null)
+                                                                                     Text.translatable("controls.reboundless.keybind.overlap." + sharedState.overlapFilterType.name().toLowerCase(Locale.ROOT)),
+                                                                                     () -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.overlapFilterType = null)
                                                                                  )
                                                                         );
                                                                     }
@@ -168,20 +192,68 @@ public class ReBoundlessWidget extends StatefulWidget {
                                         null, 45d,
                                         new Padding(
                                             Insets.horizontal(50),
-                                            new Column(
-                                                new Row(
-                                                    new EnumCyclingButton<>(
-                                                        SharedState.get(ctx, ReBindingScreenState.class).sortingMode,
-                                                        mode -> Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sortMode." + mode.toString().toLowerCase(Locale.ROOT))),
-                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.sortingMode = mode)
+                                            new Row(
+                                                new Padding(5),
+                                                List.of(
+                                                    new Flexible(
+                                                        6,
+                                                        new Column(
+                                                            new Padding(5),
+                                                            List.of(
+                                                                new Sized(
+                                                                    null, 20,
+                                                                    new Row(
+                                                                        new Padding(5),
+                                                                        List.of(
+                                                                            new Flexible(
+                                                                                sharedState.searchActive() ?
+                                                                                    new Button(Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sorting.none")), null) :
+                                                                                    new EnumCyclingButton<>(
+                                                                                        sharedState.sortingMode,
+                                                                                        mode -> Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sorting." + mode.toString().toLowerCase(Locale.ROOT))),
+                                                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.sortingMode = mode)
+                                                                                    )
+                                                                            ),
+                                                                            new Flexible(
+                                                                                sharedState.searchActive() ?
+                                                                                    new Button(Text.translatable("controls.reboundless.keybinds.categoryMode", Text.translatable("controls.reboundless.keybinds.sorting.search")), null) :
+                                                                                    new EnumCyclingButton<>(
+                                                                                        sharedState.categoryMode,
+                                                                                        mode -> Text.translatable("controls.reboundless.keybinds.categoryMode", Text.translatable("controls.reboundless.keybinds.sorting." + mode.toString().toLowerCase(Locale.ROOT))),
+                                                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.categoryMode = mode)
+                                                                                    )
+                                                                            )
+                                                                        )
+                                                                    )
+                                                                ),
+                                                                new Sized(
+                                                                    null, 20,
+                                                                    new TextBox(
+                                                                        sharedState.searchController,
+                                                                        false,
+                                                                        false
+                                                                    )
+                                                                )
+                                                            )
+                                                        )
                                                     ),
-                                                    new EnumCyclingButton<>(
-                                                        SharedState.get(ctx, ReBindingScreenState.class).categoryMode,
-                                                        mode -> Text.translatable("controls.reboundless.keybinds.categoryMode", Text.translatable("controls.reboundless.keybinds.categoryMode." + mode.toString().toLowerCase(Locale.ROOT))),
-                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.categoryMode = mode)
+                                                    new Flexible(
+                                                        4,
+                                                        new Column(
+                                                            new Padding(5),
+                                                            List.of(
+                                                                new Sized(
+                                                                    null, 20,
+                                                                    new Button(Text.literal("make this revert/reset later"), () -> MinecraftClient.getInstance().currentScreen.close())
+                                                                ),
+                                                                new Sized(
+                                                                    null, 20,
+                                                                    new Button(ScreenTexts.DONE, () -> MinecraftClient.getInstance().currentScreen.close())
+                                                                )
+                                                            )
+                                                        )
                                                     )
-                                                ),
-                                                new Button(ScreenTexts.DONE, () -> MinecraftClient.getInstance().currentScreen.close())
+                                                )
                                             )
                                         )
                                     )
@@ -221,27 +293,35 @@ public class ReBoundlessWidget extends StatefulWidget {
         public static class State extends WidgetState<ReBindingList> {
             @Override
             public Widget build(BuildContext ctx) {
-                var categoryMode = SharedState.get(ctx, ReBindingScreenState.class).categoryMode;
-                var filter = SharedState.get(ctx, ReBindingScreenState.class).filter;
-                var bindings = ReBindings.allReBindings().stream().filter(filter::matches).toList();
-                return categoryMode.equals(CategoryMode.NONE) ?
+                var sharedState = SharedState.get(ctx, ReBindingScreenState.class);
+                var bindings = ReBindings.allReBindings().stream().filter(sharedState::matchesFilters).toList();
+                return sharedState.categoryMode.equals(CategoryMode.NONE) || sharedState.searchActive() ?
                     listReBindings(ctx, bindings) :
                     new Column(
                         bindings.stream()
-                            .collect(Collectors.groupingBy(categoryMode::getCategory))
+                            .collect(Collectors.groupingBy(sharedState.categoryMode::getCategory))
                             .entrySet().stream()
-                            .sorted(Map.Entry.comparingByKey(categoryMode.getComparator()))
+                            .sorted(Map.Entry.comparingByKey(sharedState.categoryMode.getComparator()))
                             .map(stringListEntry -> new Column(
-                                new Label(LabelStyle.SHADOW, false, categoryMode.getLabel(stringListEntry.getKey())),
+                                new Label(LabelStyle.SHADOW, false, sharedState.categoryMode.getLabel(stringListEntry.getKey())),
                                 listReBindings(ctx, stringListEntry.getValue())
                             )).toList()
                     );
             }
 
             private Widget listReBindings(BuildContext ctx, List<ReBinding> reBindings) {
+                var sharedState = SharedState.get(ctx, ReBindingScreenState.class);
+                Stream<ReBinding> streamed;
+                if (!sharedState.search.isBlank()) {
+                    streamed = FuzzySearch.extractAll(sharedState.search, reBindings, bind -> bind.getDisplayedName().getString())
+                        .stream()
+                        .sorted(Comparator.reverseOrder())
+                        .map(BoundExtractedResult::getReferent);
+                } else {
+                    streamed = reBindings.stream().sorted(sharedState.sortingMode.comparator);
+                }
                 return new Column(
-                    reBindings.stream()
-                        .sorted(SharedState.get(ctx, ReBindingScreenState.class).sortingMode.comparator)
+                    streamed
                         .map(binding -> new ReBindingConfig(binding, () -> this.setState(() -> {})))
                         .toList()
                 );
@@ -304,12 +384,12 @@ public class ReBoundlessWidget extends StatefulWidget {
                                 ),
                                 new MouseArea(
                                     widget -> {
-                                        if (Objects.equals(sharedState.filter.overlapFilter, binding)) return;
+                                        if (Objects.equals(sharedState.overlapFilter, binding)) return;
                                         widget.clickCallback((x, y, button) -> {
                                             if (button != 0) return;
                                             SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
-                                                reBindingScreenState.filter.overlapFilter = binding;
-                                                reBindingScreenState.filter.overlapFilterType = null;
+                                                reBindingScreenState.overlapFilter = binding;
+                                                reBindingScreenState.overlapFilterType = null;
                                             });
                                         });
                                         widget.cursorStyle(CursorStyle.HAND);
@@ -336,10 +416,10 @@ public class ReBoundlessWidget extends StatefulWidget {
                                                         3, 18,
                                                         new MouseArea(
                                                             widget -> {
-                                                                if (!Objects.equals(sharedState.filter.overlapFilter, binding)) return;
+                                                                if (!Objects.equals(sharedState.overlapFilter, binding)) return;
                                                                 widget.clickCallback((x, y, button) -> {
                                                                     if (button != 0) return;
-                                                                    SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.filter.overlapFilterType = overlap);
+                                                                    SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.overlapFilterType = overlap);
                                                                 });
                                                                 widget.cursorStyle(CursorStyle.HAND);
                                                             },
@@ -349,7 +429,6 @@ public class ReBoundlessWidget extends StatefulWidget {
                                                 )
                                             )).toList()
                                     )
-
                                 ),
                                 new Constrain(
                                     Constraints.ofMinWidth(75),
@@ -400,27 +479,30 @@ public class ReBoundlessWidget extends StatefulWidget {
                 if (expanded) {
                     columnContents.add(
                         new Padding(
-                            Insets.left(10),
+                            Insets.vertical(3).withLeft(10),
                             new Column(
-                                new Row(
-                                    new Flexible(
+                                new Padding(2),
+                                List.of(
+                                    new ConfigEntry(
+                                        Text.translatable("controls.reboundless.keybind.sticky"),
                                         new ToggleButton(
-                                            Text.translatable("controls.reboundless.keybind.sticky", Text.translatable("options.key.toggle")),
-                                            Text.translatable("controls.reboundless.keybind.sticky", Text.translatable("options.key.hold")),
+                                             Text.translatable("options.key.toggle"),
+                                             Text.translatable("options.key.hold"),
                                             properties.sticky(),
                                             enabled -> this.setStateAndUpdate(() -> properties.sticky(enabled))
                                         )
                                     ),
-                                    new Flexible(
+                                    new ConfigEntry(
+                                        Text.translatable("controls.reboundless.keybind.inverted"),
                                         new ToggleButton(
-                                            Text.translatable("controls.reboundless.keybind.inverted", Text.translatable("options.true")),
-                                            Text.translatable("controls.reboundless.keybind.inverted", Text.translatable("options.false")),
+                                            Text.translatable("options.true"),
+                                            Text.translatable("options.false"),
                                             properties.inverted(),
                                             enabled -> this.setStateAndUpdate(() -> properties.inverted(enabled))
                                         )
-                                    )
-                                ),
-                                properties.binding().createWidget()
+                                    ),
+                                    properties.binding().createWidget()
+                                )
                             )
                         )
                     );
@@ -486,31 +568,4 @@ public class ReBoundlessWidget extends StatefulWidget {
             }
         }
     }
-
-    public static class BindingFiltererererererererer {
-        private String search = "";
-
-        @Nullable
-        private ReBinding overlapFilter = null;
-        @Nullable
-        private ReBindingConfig.Overlap overlapFilterType = null;
-
-
-        public BindingFiltererererererererer() {
-        }
-
-        public boolean matches(ReBinding binding) {
-            if (overlapFilter != null) {
-                if (overlapFilter == binding) return true;
-                var overlaps = ReBindingConfig.Overlap.findOverlaps(overlapFilter);
-                return overlapFilterType == null ? overlaps.containsValue(binding) : overlaps.get(overlapFilterType).contains(binding);
-            }
-            return true;
-        }
-
-        public boolean isEmpty() {
-            return overlapFilter == null && overlapFilterType == null;
-        }
-    }
-
 }
