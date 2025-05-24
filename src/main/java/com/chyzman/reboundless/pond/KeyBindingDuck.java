@@ -1,7 +1,6 @@
 package com.chyzman.reboundless.pond;
 
 import com.chyzman.reboundless.api.ReBinding;
-import com.chyzman.reboundless.binding.Bindable;
 
 public interface KeyBindingDuck {
 

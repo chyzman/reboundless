@@ -1,12 +1,13 @@
-package com.chyzman.reboundless.binding;
+package com.chyzman.reboundless.api.binding;
 
 import com.chyzman.reboundless.api.ReBinding;
 import io.wispforest.endec.Endec;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.serialization.CodecUtils;
+import io.wispforest.owo.serialization.endec.MinecraftEndecs;
 import net.minecraft.text.Text;
 
-import static com.chyzman.reboundless.binding.BindableType.BINDING_TYPE_REGISTRY;
+import static com.chyzman.reboundless.api.binding.BindableType.BINDING_TYPE_REGISTRY;
 
 public abstract class Bindable {
     private final BindableType<?> type;
@@ -14,7 +15,7 @@ public abstract class Bindable {
     public static final Endec<Bindable> ENDEC = Endec.dispatchedStruct(
         type -> type.endec,
         bindable -> bindable.type,
-        CodecUtils.toEndec(BINDING_TYPE_REGISTRY.getCodec())
+        MinecraftEndecs.ofRegistry(BINDING_TYPE_REGISTRY)
     );
 
     public Bindable(BindableType<?> type) {

@@ -2,8 +2,7 @@ package com.chyzman.reboundless.mixin;
 
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
-import com.chyzman.reboundless.binding.Bindable;
-import com.chyzman.reboundless.binding.KeyBindBinding;
+import com.chyzman.reboundless.api.binding.impl.KeyBindBinding;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -36,7 +35,7 @@ public class KeyBindingMixin implements KeyBindingDuck {
     @Inject(method = "setKeyPressed", at = @At(value = "HEAD"), cancellable = true)
     private static void handleSetKeyPressed(InputUtil.Key key, boolean pressed, CallbackInfo ci) {
         ci.cancel();
-        for (ReBinding bind : ReBindings.reBindingsByKey(key)) bind.onKey(key, pressed);
+//        for (ReBinding bind : ReBindings.reBindingsByKey(key)) bind.onKey(key, pressed);
     }
 
     @Inject(method = "updatePressedStates", at = @At(value = "HEAD"), cancellable = true)

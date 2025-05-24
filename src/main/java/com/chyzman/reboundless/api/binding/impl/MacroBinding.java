@@ -1,6 +1,7 @@
-package com.chyzman.reboundless.binding;
+package com.chyzman.reboundless.api.binding.impl;
 
 import com.chyzman.reboundless.api.ReBinding;
+import com.chyzman.reboundless.api.binding.Bindable;
 import com.chyzman.reboundless.registry.BindingRegistry;
 import com.chyzman.reboundless.util.EndecUtil;
 import io.wispforest.endec.Endec;

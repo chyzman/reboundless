@@ -1,13 +1,12 @@
 package com.chyzman.reboundless.mixin;
 
+import com.chyzman.reboundless.InputHandler;
 import net.minecraft.client.Keyboard;
 import net.minecraft.client.util.InputUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import static com.chyzman.reboundless.Reboundless.CURRENTLY_HELD_KEYS;
 
 @Mixin(Keyboard.class)
 public abstract class KeyboardMixin {
@@ -27,13 +26,16 @@ public abstract class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"))
     private void rememberMyKeysPlease$addPressedFromKeyboard(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
         if (action == 1) {
-            var keyInput = InputUtil.fromKeyCode(key, scancode);
-            if (!CURRENTLY_HELD_KEYS.contains(keyInput)) CURRENTLY_HELD_KEYS.add(InputUtil.fromKeyCode(key, scancode));
+            var input = InputUtil.fromKeyCode(key, scancode);
+            InputHandler.onInput(input, true);
         }
     }
 
     @Inject(method = "onKey", at = @At("RETURN"))
     private void rememberMyKeysPlease$removeUnpressedFromKeyboard(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
-        if (action == 0) CURRENTLY_HELD_KEYS.remove(InputUtil.fromKeyCode(key, scancode));
+        if (action == 0) {
+            var input = InputUtil.fromKeyCode(key, scancode);
+            InputHandler.onInput(input, false);
+        }
     }
 }

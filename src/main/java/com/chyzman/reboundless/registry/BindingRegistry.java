@@ -1,11 +1,9 @@
 package com.chyzman.reboundless.registry;
 
 import com.chyzman.reboundless.Reboundless;
-import com.chyzman.reboundless.binding.BindableType;
-import com.chyzman.reboundless.binding.KeyBindBinding;
-import com.chyzman.reboundless.binding.MacroBinding;
-import io.wispforest.endec.Endec;
-import net.minecraft.client.option.KeyBinding;
+import com.chyzman.reboundless.api.binding.BindableType;
+import com.chyzman.reboundless.api.binding.impl.KeyBindBinding;
+import com.chyzman.reboundless.api.binding.impl.MacroBinding;
 
 public class BindingRegistry {
 

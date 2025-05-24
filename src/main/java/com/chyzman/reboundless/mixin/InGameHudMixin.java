@@ -1,5 +1,6 @@
 package com.chyzman.reboundless.mixin;
 
+import com.chyzman.reboundless.InputHandler;
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
@@ -25,8 +26,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.chyzman.reboundless.Reboundless.CURRENTLY_HELD_KEYS;
-
 @Mixin(InGameHud.class)
 public abstract class InGameHudMixin {
 
@@ -43,7 +42,7 @@ public abstract class InGameHudMixin {
         var text = new ArrayList<String>();
         text.add("Reboundless Debug:");
         text.add("Pressed Keys (In Order):");
-        var pressedKeys = new ArrayList<>(CURRENTLY_HELD_KEYS);
+        var pressedKeys = new ArrayList<>(InputHandler.CURRENTLY_HELD_KEYS);
         var keyGroups = pressedKeys.stream().collect(Collectors.groupingBy(key -> pressedKeys.indexOf(key) / MathHelper.ceil(pressedKeys.size() / 5d))).values();
         text.addAll(
             keyGroups.stream()
@@ -69,12 +68,12 @@ public abstract class InGameHudMixin {
         for (int i = 0; i < 5 - keyBindGroups.size(); i++) text.add("");
         text.add("");
         text.add("Active ReBindings (In no particular order):");
-        var pressedReBindings = ReBindings.allReBindings().stream().filter(ReBinding::isPressed).toList();
+        var pressedReBindings = ReBindings.allReBindings().stream().filter(binding -> binding.isPressed() || binding.nextStep != 0).toList();
         var reBindingGroups = pressedReBindings.stream().collect(Collectors.groupingBy(key -> pressedReBindings.indexOf(key) / MathHelper.ceil(pressedReBindings.size() / 5d))).values();
         text.addAll(
             reBindingGroups.stream()
                 .map(group -> group.stream()
-                    .map(ReBinding::getDisplayedName)
+                    .map(binding -> Text.empty().append(binding.getDisplayedName()).append(" " + binding.nextStep))
                     .reduce((thisText, thatText) -> thisText.copy().append(", ").append(thatText))
                     .orElse(Text.empty())
                     .getString())

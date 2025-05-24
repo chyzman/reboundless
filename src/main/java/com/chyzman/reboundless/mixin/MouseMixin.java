@@ -1,5 +1,6 @@
 package com.chyzman.reboundless.mixin;
 
+import com.chyzman.reboundless.InputHandler;
 import net.minecraft.client.Mouse;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -16,21 +17,24 @@ public abstract class MouseMixin {
     @Inject(method = "onMouseButton", at = @At("HEAD"))
     private void rememberMyKeysPlease$addPressedFromMouse(long window, int button, int action, int mods, CallbackInfo ci) {
         if (action == 1) {
-            var keyInput = InputUtil.Type.MOUSE.createFromCode(button);
-            if (!CURRENTLY_HELD_KEYS.contains(keyInput)) CURRENTLY_HELD_KEYS.add(InputUtil.Type.MOUSE.createFromCode(button));
+            var input = InputUtil.Type.MOUSE.createFromCode(button);
+            InputHandler.onInput(input, true);
         }
     }
 
     @Inject(method = "onMouseButton", at = @At("RETURN"))
     private void rememberMyKeysPlease$removeUnpressedFromMouse(long window, int button, int action, int mods, CallbackInfo ci) {
-        if (action == 0) CURRENTLY_HELD_KEYS.remove(InputUtil.Type.MOUSE.createFromCode(button));
+        if (action == 0) {
+            var input = InputUtil.Type.MOUSE.createFromCode(button);
+            InputHandler.onInput(input, false);
+        }
     }
 
     @Inject(method = "onMouseScroll", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;getOverlay()Lnet/minecraft/client/gui/screen/Overlay;"))
     public void makeScrollingWork(long window, double horizontal, double vertical, CallbackInfo ci) {
-        InputUtil.Key key = Math.abs(vertical) > Math.abs(horizontal) ? vertical > 0 ? SCROLL_UP : SCROLL_DOWN : horizontal > 0 ? SCROLL_LEFT : SCROLL_RIGHT;
-        if (!CURRENTLY_HELD_KEYS.contains(key)) CURRENTLY_HELD_KEYS.add(key);
-        KeyBinding.setKeyPressed(key, true);
-        KeyBinding.onKeyPressed(key);
+        InputUtil.Key input = Math.abs(vertical) > Math.abs(horizontal) ? vertical > 0 ? SCROLL_UP : SCROLL_DOWN : horizontal > 0 ? SCROLL_LEFT : SCROLL_RIGHT;
+        InputHandler.onInput(input, true);
+        KeyBinding.setKeyPressed(input, true);
+        KeyBinding.onKeyPressed(input);
     }
 }

@@ -1,19 +1,23 @@
 package com.chyzman.reboundless.api;
 
-import com.chyzman.reboundless.Reboundless;
-import com.chyzman.reboundless.binding.Bindable;
-import com.chyzman.reboundless.binding.KeyBindBinding;
+import com.chyzman.reboundless.api.action.ActionStep;
+import com.chyzman.reboundless.api.action.Condition;
+import com.chyzman.reboundless.api.action.ConvertableToActionStep;
+import com.chyzman.reboundless.api.action.impl.KeyCondition;
+import com.chyzman.reboundless.api.binding.Bindable;
+import com.chyzman.reboundless.api.binding.impl.KeyBindBinding;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import com.chyzman.reboundless.util.EndecUtil;
-import com.chyzman.reboundless.util.KeyUtil;
-import com.chyzman.reboundless.util.ReboundlessEndecs;
 import eu.pb4.placeholders.api.parsers.TagParser;
 import io.wispforest.endec.Endec;
 import io.wispforest.endec.impl.StructEndecBuilder;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.text.Texts;
+import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
+import java.security.Key;
 import java.util.*;
 
 import static com.chyzman.reboundless.Reboundless.UNKNOWN_CATEGORY;
@@ -26,11 +30,13 @@ public class ReBinding {
 
     private boolean active;
 
+    //TODO: make this private
+    public int nextStep = 0;
+
     private long lastUpdated;
 
-    private int presses;
 
-    //region ENDEC STUFF
+    //region ENDEC
 
     public static final Endec<ReBinding> ENDEC = Properties.ENDEC.xmap(ReBinding::new, bind -> bind.properties);
 
@@ -47,7 +53,6 @@ public class ReBinding {
 
         this.active = false;
         this.lastUpdated = System.currentTimeMillis();
-        this.presses = 0;
     }
 
     public ReBinding(Properties properties) {
@@ -56,27 +61,19 @@ public class ReBinding {
 
     public ReBinding(
         String name,
-        List<InputUtil.Key> keys,
-        boolean ordered,
-        Set<InputUtil.Key> exceptions,
-        boolean isWhitelist,
-        boolean sticky,
+        List<ActionStep> activationSteps,
+        List<ActionStep> deactivationSteps,
         boolean inverted,
         int debounce,
-        int pressesRequired,
         int pressPower,
         @Nullable Bindable keybinding
     ) {
         this(new Properties(
             name,
-            keys,
-            ordered,
-            exceptions,
-            isWhitelist,
-            sticky,
+            activationSteps,
+            deactivationSteps,
             inverted,
             debounce,
-            pressesRequired,
             pressPower,
             keybinding
         ));
@@ -84,20 +81,33 @@ public class ReBinding {
 
     //endregion
 
-    public void onKey(InputUtil.Key key, boolean pressed) {
-        if (!Objects.equals(properties.key(), key)) return;
-
+    public void step() {
         var now = System.currentTimeMillis();
 
-        if (properties.debounce > 0) {
-            if (now - lastUpdated > properties.debounce) return;
+        if (properties.debounce > 0 && now - lastUpdated > properties.debounce) return;
+
+        var targetSequence = active ? properties.deactivationSteps : properties.activationSteps;
+
+        if (targetSequence.size() <= nextStep) {
+            nextStep = 0;
+            return;
         }
 
-        if (pressed && !properties.keysMatch(Reboundless.CURRENTLY_HELD_KEYS) || !properties.exceptionsMatch(Reboundless.CURRENTLY_HELD_KEYS)) return;
+        var test = targetSequence.get(nextStep).test();
 
-        if (setPressed(pressed) && properties.binding != null) {
-            properties.binding.setPressed(this, pressed, properties.pressPower);
-        }
+        if (test == ActionStep.StepResult.FAILURE) nextStep = 0;
+        if (test != ActionStep.StepResult.SUCCESS) return;
+
+        nextStep++;
+
+        if (nextStep < targetSequence.size()) return;
+
+        nextStep = 0;
+        lastUpdated = now;
+
+        var nextPressed = !active;
+
+        if (setPressed(nextPressed) && properties.binding != null) properties.binding.setPressed(this, nextPressed, properties.pressPower);
     }
 
     public boolean isPressed() {
@@ -105,16 +115,8 @@ public class ReBinding {
     }
 
     public boolean setPressed(boolean pressed) {
-        var updated = false;
-        if (properties.sticky) {
-            if (pressed) {
-                this.active = !this.active;
-                updated = true;
-            }
-        } else {
-            updated = pressed != this.active;
-            this.active = pressed;
-        }
+        var updated = pressed != this.active;
+        this.active = pressed;
         return updated;
     }
 
@@ -124,7 +126,6 @@ public class ReBinding {
 
     public void resetState() {
         active = false;
-        presses = 0;
         lastUpdated = System.currentTimeMillis();
         updateState();
     }
@@ -161,13 +162,9 @@ public class ReBinding {
         public static final Properties EMPTY = new Properties(
             "",
             List.of(),
-            true,
-            Set.of(),
-            false,
-            false,
+            List.of(),
             false,
             0,
-            1,
             1,
             null
         );
@@ -176,19 +173,12 @@ public class ReBinding {
 
         private String name;
 
-        private final ArrayList<InputUtil.Key> keys;
-        private boolean ordered;
+        public List<ActionStep> activationSteps;
+        public List<ActionStep> deactivationSteps;
 
-        private final HashSet<InputUtil.Key> exceptions;
-        private boolean isWhitelist;
-
-        private boolean sticky;
         private boolean inverted;
 
         private int debounce;
-
-        //TODO: implement globally stored timeBetweenPresses for pressesRequired
-        private int pressesRequired;
 
         private int pressPower;
 
@@ -197,18 +187,14 @@ public class ReBinding {
 
         //endregion
 
-        //region ENDEC STUFF
+        //region ENDEC
 
         public static final Endec<Properties> ENDEC = StructEndecBuilder.of(
             EndecUtil.optionalFieldOfEmptyCheck("name", Endec.STRING, o -> o.name, () -> EMPTY.name),
-            EndecUtil.optionalFieldOfEmptyCheck("keys", ReboundlessEndecs.KEY.listOf(), o -> o.keys, () -> new ArrayList<>(EMPTY.keys)),
-            EndecUtil.optionalFieldOfEmptyCheck("ordered", Endec.BOOLEAN, o -> o.ordered, () -> EMPTY.ordered),
-            EndecUtil.optionalFieldOfEmptyCheck("exceptions", ReboundlessEndecs.KEY.setOf(), o -> o.exceptions, () -> new HashSet<>(EMPTY.exceptions)),
-            EndecUtil.optionalFieldOfEmptyCheck("whitelist", Endec.BOOLEAN, o -> o.isWhitelist, () -> EMPTY.isWhitelist),
-            EndecUtil.optionalFieldOfEmptyCheck("sticky", Endec.BOOLEAN, o -> o.sticky, () -> EMPTY.sticky),
+            EndecUtil.optionalFieldOfEmptyCheck("activationSteps", ActionStep.ENDEC.listOf(), o -> o.activationSteps, () -> new ArrayList<>(EMPTY.activationSteps)),
+            EndecUtil.optionalFieldOfEmptyCheck("deactivationSteps", ActionStep.ENDEC.listOf(), o -> o.deactivationSteps, () -> new ArrayList<>(EMPTY.deactivationSteps)),
             EndecUtil.optionalFieldOfEmptyCheck("inverted", Endec.BOOLEAN, o -> o.inverted, () -> EMPTY.inverted),
             EndecUtil.optionalFieldOfEmptyCheck("debounce", Endec.INT, o -> o.debounce, () -> EMPTY.debounce),
-            EndecUtil.optionalFieldOfEmptyCheck("pressesRequired", Endec.INT, o -> o.pressesRequired, () -> EMPTY.pressesRequired),
             EndecUtil.optionalFieldOfEmptyCheck("pressPower", Endec.INT, o -> o.pressPower, () -> EMPTY.pressPower),
             EndecUtil.optionalFieldOfEmptyCheck("binding", Bindable.ENDEC, o -> o.binding, () -> EMPTY.binding),
             Properties::new
@@ -220,43 +206,29 @@ public class ReBinding {
 
         public Properties(
             String name,
-            Collection<InputUtil.Key> keys,
-            boolean ordered,
-            Set<InputUtil.Key> exceptions,
-            boolean isWhitelist,
-            boolean sticky,
+            List<ActionStep> activationSteps,
+            List<ActionStep> deactivationSteps,
             boolean inverted,
             int debounce,
-            int pressesRequired,
             int pressPower,
             @Nullable Bindable binding
         ) {
             this.name = name;
-            this.keys = new ArrayList<>(keys);
-            this.ordered = ordered;
-            this.exceptions = new HashSet<>(exceptions);
-            this.isWhitelist = isWhitelist;
-            this.sticky = sticky;
+            this.activationSteps = activationSteps;
+            this.deactivationSteps = deactivationSteps;
             this.inverted = inverted;
             this.debounce = debounce;
-            this.pressesRequired = pressesRequired;
             this.pressPower = pressPower;
             this.binding = binding;
-            this.sanitizeKeys();
-            this.sanitizeExceptions();
         }
 
         public Properties() {
             this(
                 EMPTY.name,
-                new ArrayList<>(EMPTY.keys),
-                EMPTY.ordered,
-                new HashSet<>(EMPTY.exceptions),
-                EMPTY.isWhitelist,
-                EMPTY.sticky,
+                new ArrayList<>(EMPTY.activationSteps),
+                new ArrayList<>(EMPTY.deactivationSteps),
                 EMPTY.inverted,
                 EMPTY.debounce,
-                EMPTY.pressesRequired,
                 EMPTY.pressPower,
                 EMPTY.binding
             );
@@ -265,14 +237,10 @@ public class ReBinding {
         public Properties(Properties properties) {
             this(
                 properties.name,
-                new ArrayList<>(properties.keys),
-                properties.ordered,
-                new HashSet<>(properties.exceptions),
-                properties.isWhitelist,
-                properties.sticky,
+                new ArrayList<>(properties.activationSteps),
+                new ArrayList<>(properties.deactivationSteps),
                 properties.inverted,
                 properties.debounce,
-                properties.pressesRequired,
                 properties.pressPower,
                 properties.binding
             );
@@ -280,15 +248,10 @@ public class ReBinding {
 
         public void apply(Properties that) {
             this.name = that.name;
-            this.replaceKeys(that.keys);
-            this.ordered = that.ordered;
-            this.exceptions.clear();
-            this.exceptions.addAll(that.exceptions);
-            this.isWhitelist = that.isWhitelist;
-            this.sticky = that.sticky;
+            this.replaceActivationSteps(that.activationSteps);
+            this.replaceDeactivationSteps(that.deactivationSteps);
             this.inverted = that.inverted;
             this.debounce = that.debounce;
-            this.pressesRequired = that.pressesRequired;
             this.pressPower = that.pressPower;
             this.binding = that.binding;
         }
@@ -308,92 +271,28 @@ public class ReBinding {
             return this;
         }
 
-        //key
+        //activation Steps
 
-        public @Nullable InputUtil.Key key() {
-            return keys.isEmpty() ? null : keys.getLast();
-        }
-
-        public List<InputUtil.Key> modifiers() {
-            return new ArrayList<>(keys).subList(0, keys.size() - 1);
-        }
-
-        public List<InputUtil.Key> relevantKeys() {
-            return new ArrayList<>(keys);
-        }
-
-        public Properties replaceKeys(Collection<InputUtil.Key> keys) {
-            this.keys.clear();
-            this.keys.addAll(keys);
-            sanitizeKeys();
-            sanitizeExceptions();
+        public Properties replaceActivationSteps(Collection<? extends ConvertableToActionStep> activationSteps) {
+            this.activationSteps.clear();
+            this.activationSteps.addAll(activationSteps.stream().map(ConvertableToActionStep::toActionStep).toList());
             return this;
         }
 
-        public void sanitizeKeys() {
-            var sanitized = this.keys.reversed().stream().distinct().filter(KeyUtil::isValid).toList().reversed();
-            this.keys.clear();
-            this.keys.addAll(sanitized);
+        public Properties replaceActivationSteps(ConvertableToActionStep... activationSteps) {
+            return this.replaceActivationSteps(List.of(activationSteps));
         }
 
-        //ordered
+        //deactivation Steps
 
-        public boolean ordered() {
-            return ordered;
-        }
-
-        public Properties ordered(boolean ordered) {
-            this.ordered = ordered;
+        public Properties replaceDeactivationSteps(Collection<? extends ConvertableToActionStep> deactivationSteps) {
+            this.deactivationSteps.clear();
+            this.deactivationSteps.addAll(deactivationSteps.stream().map(ConvertableToActionStep::toActionStep).toList());
             return this;
         }
 
-        //exceptions
-
-        public Set<InputUtil.Key> exceptions() {
-            return new HashSet<>(exceptions);
-        }
-
-        public boolean addException(InputUtil.Key exception) {
-            this.exceptions.add(exception);
-            sanitizeExceptions();
-            return this.exceptions.contains(exception);
-        }
-
-        public boolean removeException(InputUtil.Key exception) {
-            return this.exceptions.remove(exception);
-        }
-
-        public Properties replaceExceptions(Collection<InputUtil.Key> exceptions) {
-            this.exceptions.clear();
-            this.exceptions.addAll(exceptions);
-            sanitizeExceptions();
-            return this;
-        }
-
-        public void sanitizeExceptions() {
-            this.exceptions.removeIf(exception -> !KeyUtil.isValid(exception) || relevantKeys().contains(exception));
-        }
-
-        //isWhitelist
-
-        public boolean isWhitelist() {
-            return isWhitelist;
-        }
-
-        public Properties isWhitelist(boolean isWhitelist) {
-            this.isWhitelist = isWhitelist;
-            return this;
-        }
-
-        //sticky
-
-        public boolean sticky() {
-            return sticky;
-        }
-
-        public Properties sticky(boolean sticky) {
-            this.sticky = sticky;
-            return this;
+        public Properties replaceDeactivationSteps(ConvertableToActionStep... deactivationSteps) {
+            return this.replaceDeactivationSteps(List.of(deactivationSteps));
         }
 
         //inverted
@@ -415,17 +314,6 @@ public class ReBinding {
 
         public Properties debounce(int debounce) {
             this.debounce = debounce;
-            return this;
-        }
-
-        //pressesRequired
-
-        public int pressesRequired() {
-            return pressesRequired;
-        }
-
-        public Properties pressesRequired(int pressesRequired) {
-            this.pressesRequired = pressesRequired;
             return this;
         }
 
@@ -460,51 +348,45 @@ public class ReBinding {
 
         //endregion
 
+        //TODO: make this better
+        public void rebind(List<InputUtil.Key> keys) {
+            this.replaceActivationSteps(new ActionStep(keys.stream().map(KeyCondition::new).toList()));
+            if (keys.isEmpty()) {
+                this.replaceDeactivationSteps(List.of());
+            } else {
+                this.replaceDeactivationSteps(new KeyCondition(keys.getLast(), false));
+            }
+        }
+
+        public Text getDisplayText() {
+            return Text.empty().append(
+                    Texts.join(
+                        activationSteps.stream().map(ActionStep::getDisplayText).toList(),
+                        Text.literal(" -> ")
+                    ).copy().formatted(Formatting.GREEN))
+                .append("\n")
+                .append(
+                    Texts.join(
+                        deactivationSteps.stream().map(ActionStep::getDisplayText).toList(),
+                        Text.literal(" -> ")
+                    ).copy().formatted(Formatting.RED));
+        }
+
         public boolean unpressable() {
             if (this.binding == null) return true;
-            if (!KeyUtil.isValid(this.key())) return true;
             return false;
-        }
-
-        public boolean keysMatch(List<InputUtil.Key> keys) {
-            if (keys.isEmpty()) return true;
-            if (keys.size() < relevantKeys().size()) return false;
-            if (ordered) {
-                var important = new ArrayList<>(keys);
-                important.retainAll(relevantKeys());
-                return important.equals(relevantKeys());
-            }
-            return new HashSet<>(keys).containsAll(relevantKeys());
-        }
-
-        public boolean exceptionsMatch(List<InputUtil.Key> keys) {
-            if (!isWhitelist && exceptions.isEmpty()) return true;
-
-            var stripped = new HashSet<>(keys);
-            stripped.removeIf(relevantKeys()::contains);
-
-            if (isWhitelist) {
-                return exceptions.containsAll(stripped);
-            } else {
-                return exceptions.stream().noneMatch(stripped::contains);
-            }
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null) return false;
             if (!(o instanceof Properties that)) return false;
-            return ordered == that.ordered &&
-                   isWhitelist == that.isWhitelist &&
-                   sticky == that.sticky &&
-                   inverted == that.inverted &&
+            return inverted == that.inverted &&
                    debounce == that.debounce &&
-                   pressesRequired == that.pressesRequired &&
                    pressPower == that.pressPower &&
                    Objects.equals(name, that.name) &&
-                   Objects.equals(keys, that.keys) &&
-                   Objects.equals(exceptions, that.exceptions) &&
+                   Objects.equals(activationSteps, that.activationSteps) &&
+                   Objects.equals(deactivationSteps, that.deactivationSteps) &&
                    Objects.equals(binding, that.binding);
         }
 
@@ -512,14 +394,10 @@ public class ReBinding {
         public int hashCode() {
             return Objects.hash(
                 name,
-                keys,
-                ordered,
-                exceptions,
-                isWhitelist,
-                sticky,
+                activationSteps,
+                deactivationSteps,
                 inverted,
                 debounce,
-                pressesRequired,
                 pressPower,
                 binding
             );

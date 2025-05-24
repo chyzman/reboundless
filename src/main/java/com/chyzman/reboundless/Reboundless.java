@@ -1,7 +1,7 @@
 package com.chyzman.reboundless;
 
 import com.chyzman.reboundless.registry.BindingRegistry;
-import eu.pb4.placeholders.api.PlaceholderContext;
+import com.chyzman.reboundless.registry.ConditionRegistry;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -10,19 +10,18 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.util.Identifier;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import static com.chyzman.reboundless.InputHandler.CURRENTLY_HELD_KEYS;
 
 public class Reboundless implements ClientModInitializer {
     public static final String MODID = "reboundless";
 
     public static final String UNKNOWN_CATEGORY = "key.categories.unknown";
     public static final String MACRO_CATEGORY = "key.categories.macro";
-
-    public static final List<InputUtil.Key> CURRENTLY_HELD_KEYS = new ArrayList<>();
 
     public static final InputUtil.Key SCROLL_UP = InputUtil.Type.MOUSE.createFromCode(100);
     public static final InputUtil.Key SCROLL_DOWN = InputUtil.Type.MOUSE.createFromCode(101);
@@ -39,6 +38,7 @@ public class Reboundless implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ConditionRegistry.init();
         BindingRegistry.init();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

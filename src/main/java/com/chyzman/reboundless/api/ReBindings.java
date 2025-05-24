@@ -1,7 +1,10 @@
 package com.chyzman.reboundless.api;
 
-import com.chyzman.reboundless.binding.KeyBindBinding;
+import com.chyzman.reboundless.api.action.ActionStep;
+import com.chyzman.reboundless.api.action.impl.KeyCondition;
+import com.chyzman.reboundless.api.binding.impl.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
+import com.chyzman.reboundless.mixin.access.StickyKeyBindingAccessor;
 import com.chyzman.reboundless.util.ReboundlessEndecs;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -12,6 +15,7 @@ import io.wispforest.endec.format.gson.GsonDeserializer;
 import io.wispforest.endec.format.gson.GsonSerializer;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.client.util.InputUtil;
 
 import java.util.*;
@@ -27,7 +31,7 @@ public class ReBindings {
 
     public static final List<KeyBinding> INTENTIONALLY_UNBOUND_KEYBINDINGS = new ArrayList<>();
 
-    //region ENDEC STUFF
+    //region ENDEC
 
     private static final Endec<List<ReBinding>> REBINDING_LIST_ENDEC = ReBinding.ENDEC.listOf();
 
@@ -55,7 +59,7 @@ public class ReBindings {
         KEY_TO_REBINDING.clear();
         KEYBINDING_TO_REBINDING.clear();
         for (ReBinding reBinding : REBINDINGS) {
-            for (InputUtil.Key key : reBinding.properties.relevantKeys()) KEY_TO_REBINDING.put(key, reBinding);
+//            for (InputUtil.Key key : reBinding.properties.relevantKeys()) KEY_TO_REBINDING.put(key, reBinding);
             if (reBinding.properties.binding() != null && reBinding.properties.binding() instanceof KeyBindBinding keyBindBinding) KEYBINDING_TO_REBINDING.put(keyBindBinding.keyBinding, reBinding);
         }
     }
@@ -79,10 +83,16 @@ public class ReBindings {
         var unused = Arrays.stream(allKeys).filter(keyBinding -> !usedKeyBindings.contains(keyBinding) && !unbound.contains(keyBinding)).toList();
         for (KeyBinding keyBinding : unused) {
             var reBinding = new ReBinding(new KeyBindBinding(keyBinding).generateProperties());
-            reBinding.properties.replaceKeys(List.of(((KeyBindingAccessor) keyBinding).reboundless$getBoundKey()));
+            reBinding.properties
+                .replaceActivationSteps(new ActionStep(new KeyCondition(((KeyBindingAccessor) keyBinding).reboundless$getBoundKey())))
+                .replaceDeactivationSteps(new ActionStep(new KeyCondition(((KeyBindingAccessor) keyBinding).reboundless$getBoundKey(), keyBinding instanceof StickyKeyBinding sticky && ((StickyKeyBindingAccessor) sticky).reboundless$getBooleanSupplier().getAsBoolean())));
             allReBindings().add(reBinding);
         }
         reCache();
+    }
+
+    public static void stepAll() {
+        REBINDINGS.forEach(ReBinding::step);
     }
 
     public static void updateInitialProperties() {

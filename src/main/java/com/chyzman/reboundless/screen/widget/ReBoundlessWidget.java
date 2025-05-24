@@ -1,10 +1,10 @@
 package com.chyzman.reboundless.screen.widget;
 
-import com.chyzman.reboundless.Reboundless;
 import com.chyzman.reboundless.api.CategoryMode;
 import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.ReBindings;
 import com.chyzman.reboundless.api.SortingMode;
+import com.chyzman.reboundless.InputHandler;
 import com.chyzman.reboundless.util.KeyUtil;
 import com.google.common.collect.HashMultimap;
 import io.wispforest.owo.braid.core.Alignment;
@@ -266,7 +266,7 @@ public class ReBoundlessWidget extends StatefulWidget {
                                     return true;
                                 },
                                 key -> {
-                                    if (Reboundless.CURRENTLY_HELD_KEYS.isEmpty()) return false;
+                                    if (InputHandler.CURRENTLY_HELD_KEYS.isEmpty()) return false;
                                     if (sharedState.selected == null || sharedState.updateSelected == null) return false;
                                     sharedState.updateSelected.accept(true);
                                     ReBindings.reCache();
@@ -440,16 +440,16 @@ public class ReBoundlessWidget extends StatefulWidget {
                                                 sharedState.selected == null || sharedState.selected == binding ? button -> {
                                                     if (button == 0) {
                                                         SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
-                                                            Reboundless.CURRENTLY_HELD_KEYS.clear();
+                                                            InputHandler.CURRENTLY_HELD_KEYS.clear();
                                                             reBindingScreenState.selected = binding;
                                                             reBindingScreenState.updateSelected = b -> {
-                                                                if (b) properties.replaceKeys(Reboundless.CURRENTLY_HELD_KEYS);
+                                                                if (b) properties.rebind(InputHandler.CURRENTLY_HELD_KEYS);
                                                                 widget().onChanged.run();
                                                             };
                                                         });
                                                     } else if (button == 1) {
                                                         SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
-                                                            properties.replaceKeys(List.of());
+                                                            properties.rebind(List.of());
                                                             widget().onChanged.run();
                                                         });
                                                     }
@@ -486,10 +486,12 @@ public class ReBoundlessWidget extends StatefulWidget {
                                     new ConfigEntry(
                                         Text.translatable("controls.reboundless.keybind.sticky"),
                                         new ToggleButton(
-                                             Text.translatable("options.key.toggle"),
-                                             Text.translatable("options.key.hold"),
-                                            properties.sticky(),
-                                            enabled -> this.setStateAndUpdate(() -> properties.sticky(enabled))
+                                            Text.translatable("options.key.toggle"),
+                                            Text.translatable("options.key.hold"),
+                                            false,
+                                            t -> {}
+//                                            properties.sticky(),
+//                                            enabled -> this.setStateAndUpdate(() -> properties.sticky(enabled))
                                         )
                                     ),
                                     new ConfigEntry(
@@ -517,11 +519,11 @@ public class ReBoundlessWidget extends StatefulWidget {
 
             private Text getBindButtonLabel(boolean editing) {
                 var text = Text.empty();
-                var useHeld = editing && !Reboundless.CURRENTLY_HELD_KEYS.isEmpty();
+                var useHeld = editing && !InputHandler.CURRENTLY_HELD_KEYS.isEmpty();
 
                 text.append(Text.literal("> "));
 
-                var center = Text.empty().append(KeyUtil.boundText(useHeld ? Reboundless.CURRENTLY_HELD_KEYS : widget().binding.properties.relevantKeys()));
+                var center = Text.empty().append(useHeld ? KeyUtil.boundText(InputHandler.CURRENTLY_HELD_KEYS) : widget().binding.properties.getDisplayText());
                 if (useHeld) center.append(KeyUtil.BOUND_SEPARATOR).append(Text.literal("..."));
 
                 text.append(center.copy().formatted(Formatting.WHITE, Formatting.UNDERLINE));
@@ -553,16 +555,16 @@ public class ReBoundlessWidget extends StatefulWidget {
                     var b = other.properties;
                     if (a.unpressable() || b.unpressable()) continue;
                     if (a.binding() != null && a.binding().equals(b.binding())) overlaps.put(SAME_FUNCTION, other);
-                    if (!a.exceptionsMatch(b.relevantKeys()) || !b.exceptionsMatch(a.relevantKeys())) {
-                        overlaps.put(IMPOSSIBLE, other);
-                        continue;
-                    }
-                    var guaranteed = a.relevantKeys().equals(b.relevantKeys());
-                    if (guaranteed) {
-                        overlaps.put(GUARANTEED, other);
-                    } else if (a.keysMatch(b.relevantKeys()) || b.keysMatch(a.relevantKeys())) {
-                        overlaps.put(POSSIBLE, other);
-                    }
+//                    if (!a.exceptionsMatch(b.relevantKeys()) || !b.exceptionsMatch(a.relevantKeys())) {
+//                        overlaps.put(IMPOSSIBLE, other);
+//                        continue;
+//                    }
+//                    var guaranteed = a.relevantKeys().equals(b.relevantKeys());
+//                    if (guaranteed) {
+//                        overlaps.put(GUARANTEED, other);
+//                    } else if (a.keysMatch(b.relevantKeys()) || b.keysMatch(a.relevantKeys())) {
+//                        overlaps.put(POSSIBLE, other);
+//                    }
                 }
                 return overlaps;
             }

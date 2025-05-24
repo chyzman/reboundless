@@ -1,7 +1,7 @@
 package com.chyzman.reboundless.api;
 
 import com.chyzman.reboundless.Reboundless;
-import com.chyzman.reboundless.binding.KeyBindBinding;
+import com.chyzman.reboundless.api.binding.impl.KeyBindBinding;
 import com.chyzman.reboundless.mixin.access.KeyBindingRegistryImplAccessor;
 import net.fabricmc.fabric.mixin.client.keybinding.KeyBindingAccessor;
 import net.minecraft.text.Text;

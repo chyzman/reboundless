@@ -1,11 +1,13 @@
-package com.chyzman.reboundless.binding;
+package com.chyzman.reboundless.api.binding.impl;
 
 import com.chyzman.reboundless.api.ReBinding;
+import com.chyzman.reboundless.api.action.ActionStep;
+import com.chyzman.reboundless.api.action.impl.KeyCondition;
+import com.chyzman.reboundless.api.binding.Bindable;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
 import com.chyzman.reboundless.mixin.access.StickyKeyBindingAccessor;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import com.chyzman.reboundless.registry.BindingRegistry;
-import com.chyzman.reboundless.screen.widget.ReBoundlessWidget;
 import com.chyzman.reboundless.util.ReboundlessEndecs;
 import io.wispforest.endec.StructEndec;
 import io.wispforest.endec.impl.StructEndecBuilder;
@@ -14,7 +16,6 @@ import io.wispforest.owo.braid.framework.proxy.WidgetState;
 import io.wispforest.owo.braid.framework.widget.StatefulWidget;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.braid.widgets.cycle.CyclingButton;
-import io.wispforest.owo.braid.widgets.sharedstate.SharedState;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.text.Text;
@@ -58,8 +59,9 @@ public class KeyBindBinding extends Bindable {
     @Override
     public ReBinding.Properties generateProperties() {
         return super.generateProperties()
-            .replaceKeys(List.of(keyBinding.getDefaultKey()))
-            .sticky(keyBinding instanceof StickyKeyBinding sticky && ((StickyKeyBindingAccessor) sticky).reboundless$getBooleanSupplier().getAsBoolean());
+            //TODO: abstract this?
+            .replaceActivationSteps(new ActionStep(new KeyCondition(keyBinding.getDefaultKey())))
+            .replaceDeactivationSteps(new ActionStep(new KeyCondition(keyBinding.getDefaultKey(), keyBinding instanceof StickyKeyBinding sticky && ((StickyKeyBindingAccessor) sticky).reboundless$getBooleanSupplier().getAsBoolean())));
     }
 
     @Override
