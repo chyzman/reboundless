@@ -39,7 +39,7 @@ public class KeyCondition extends Condition<Set<InputUtil.Key>> {
     }
 
     @Override
-    protected boolean test(Set<InputUtil.Key> state) {
+    public boolean test(Set<InputUtil.Key> state) {
         return state.contains(key) == pressed;
     }
 

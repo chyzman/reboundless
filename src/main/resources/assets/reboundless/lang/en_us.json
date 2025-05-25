@@ -33,7 +33,7 @@
   "controls.reboundless.keybind.overlap.same_function.tooltip": "This ReBind has the same functionality as:\n%s",
 
   "key.categories.unknown": "Unknown",
-  "key.categories.macro": "Macro",
+  "key.categories.bindable.reboundless.macro": "Macro",
 
   "controls.reboundless.keybinds.sortMode": "Sort: %s",
   "controls.reboundless.keybinds.categoryMode": "Categories: %s",
@@ -52,6 +52,10 @@
   "binding.reboundless.macro.type.command": "Execute Command",
   "binding.reboundless.macro.type.message": "Send Chat Message",
   "binding.reboundless.macro.type.chat": "Autofill Chat",
+
+  "condition.reboundless.in_screen": "In Screen",
+  "condition.reboundless.in_screen.true": "In a Screen",
+  "condition.reboundless.in_screen.false": "Not in a Screen",
 
   "options.true": "True",
   "options.false": "False",

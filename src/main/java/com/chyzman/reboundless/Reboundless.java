@@ -21,7 +21,6 @@ public class Reboundless implements ClientModInitializer {
     public static final String MODID = "reboundless";
 
     public static final String UNKNOWN_CATEGORY = "key.categories.unknown";
-    public static final String MACRO_CATEGORY = "key.categories.macro";
 
     public static final InputUtil.Key SCROLL_UP = InputUtil.Type.MOUSE.createFromCode(100);
     public static final InputUtil.Key SCROLL_DOWN = InputUtil.Type.MOUSE.createFromCode(101);

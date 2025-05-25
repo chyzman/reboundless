@@ -24,39 +24,32 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
-import static com.chyzman.reboundless.Reboundless.MACRO_CATEGORY;
-
 public class MacroBinding extends Bindable {
 
     public String macro;
-    public Type type;
+    public Type macroType;
 
     public static final StructEndec<MacroBinding> ENDEC = StructEndecBuilder.of(
         Endec.STRING.fieldOf("macro", binding -> binding.macro),
-        EndecUtil.optionalFieldOfEmptyCheck("macroType", Endec.STRING.xmap(Type::valueOf, Enum::name), binding -> binding.type, () -> Type.COMMAND),
+        EndecUtil.optionalFieldOfEmptyCheck("macroType", Endec.STRING.xmap(Type::valueOf, Enum::name), binding -> binding.macroType, () -> Type.COMMAND),
         MacroBinding::new
     );
 
-    public MacroBinding(String macro, Type type) {
+    public MacroBinding(String macro, Type macroType) {
         super(BindingRegistry.MACRO);
         this.macro = macro;
-        this.type = type;
+        this.macroType = macroType;
     }
 
     @Override
     public Text getName() {
-        return Text.translatable("binding.reboundless.macro." + this.type.name().toLowerCase(Locale.ROOT), macro);
-    }
-
-    @Override
-    public String getCategory() {
-        return MACRO_CATEGORY;
+        return Text.translatable(this.type.translationKey + "." + this.macroType.name().toLowerCase(Locale.ROOT), macro);
     }
 
     @Override
     public void setPressed(ReBinding reBinding, boolean pressed, int power) {
         var player = MinecraftClient.getInstance().player;
-        if (pressed && power > 0 && player != null) this.type.action.accept(MinecraftClient.getInstance(), this.macro);
+        if (pressed && power > 0 && player != null) this.macroType.action.accept(MinecraftClient.getInstance(), this.macro);
     }
 
     @Override
@@ -112,9 +105,9 @@ public class MacroBinding extends Bindable {
                         false
                     ),
                     new EnumCyclingButton<>(
-                        this.binding.type,
+                        this.binding.macroType,
                         binding -> Text.translatable("binding.reboundless.macro.type." + binding.name().toLowerCase(Locale.ROOT)),
-                        bind -> this.setState(() -> this.binding.type = bind)
+                        bind -> this.setState(() -> this.binding.macroType = bind)
                     )
                 );
             }
@@ -125,11 +118,11 @@ public class MacroBinding extends Bindable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MacroBinding that)) return false;
-        return Objects.equals(macro, that.macro) && type == that.type;
+        return Objects.equals(macro, that.macro) && macroType == that.macroType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(macro, type);
+        return Objects.hash(macro, macroType);
     }
 }

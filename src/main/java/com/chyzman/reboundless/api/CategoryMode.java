@@ -37,7 +37,7 @@ public enum CategoryMode {
     ),
     MOD(
         bind -> {
-            if (!(bind.properties.binding() instanceof KeyBindBinding keyBindBinding)) return bind.properties.binding().getCategory();
+            if (!(bind.properties.binding() instanceof KeyBindBinding keyBindBinding)) return bind.properties.binding().getVanillaCategoryKey();
             var keyBinding = keyBindBinding.keyBinding;
             if (!(KeyBindingRegistryImplAccessor.reboundless$getModdedKeys().contains(keyBinding))) return "minecraft";
             var pattern = Reboundless.TRADITIONAL_KEYBIND_KEY_PATTERN.matcher(keyBinding.getTranslationKey());
@@ -60,6 +60,10 @@ public enum CategoryMode {
             if (mappedName != null) return Text.literal(mappedName);
             return Text.translatable(UNKNOWN_CATEGORY);
         }
+    ),
+    TYPE(
+        bind -> bind.properties.binding().getTypeCategoryKey()
+
     ),
     NONE(binding -> "none");
 

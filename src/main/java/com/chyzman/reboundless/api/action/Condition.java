@@ -30,7 +30,7 @@ public abstract class Condition<T> implements ConvertableToActionStep {
         this.type = type;
     }
 
-    protected abstract boolean test(T state);
+    public abstract boolean test(T state);
 
     public abstract Text getDisplayText();
 

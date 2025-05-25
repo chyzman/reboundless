@@ -42,7 +42,7 @@ public class KeyBindBinding extends Bindable {
     }
 
     @Override
-    public String getCategory() {
+    public String getVanillaCategoryKey() {
         return keyBinding.getCategory();
     }
 

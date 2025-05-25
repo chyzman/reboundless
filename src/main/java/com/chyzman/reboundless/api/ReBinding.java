@@ -1,7 +1,6 @@
 package com.chyzman.reboundless.api;
 
 import com.chyzman.reboundless.api.action.ActionStep;
-import com.chyzman.reboundless.api.action.Condition;
 import com.chyzman.reboundless.api.action.ConvertableToActionStep;
 import com.chyzman.reboundless.api.action.impl.KeyCondition;
 import com.chyzman.reboundless.api.binding.Bindable;
@@ -17,7 +16,6 @@ import net.minecraft.text.Texts;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
-import java.security.Key;
 import java.util.*;
 
 import static com.chyzman.reboundless.Reboundless.UNKNOWN_CATEGORY;
@@ -342,8 +340,8 @@ public class ReBinding {
         //categorization
 
         public String getCategory() {
-            if (binding == null || binding.getCategory() == null) return UNKNOWN_CATEGORY;
-            return binding.getCategory();
+            if (binding == null || binding.getVanillaCategoryKey() == null) return UNKNOWN_CATEGORY;
+            return binding.getVanillaCategoryKey();
         }
 
         //endregion

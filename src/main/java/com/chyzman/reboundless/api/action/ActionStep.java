@@ -41,12 +41,11 @@ public final class ActionStep implements ConvertableToActionStep {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public StepResult test() {
-        var conditions = new ArrayList<>(this.conditions);
-        var mainCondition = conditions.removeLast();
-        var conditionNow = ((Condition) mainCondition).test(Condition.CURRENT_STATES.get(mainCondition.getType()));
-        if (conditionNow == ((Condition) mainCondition).test(Condition.PREVIOUS_STATES.get(mainCondition.getType()))) return StepResult.IGNORE;
-        if (!conditionNow) return StepResult.FAILURE;
-        for (Condition<?> precondition : conditions) if (!((Condition) precondition).test(Condition.CURRENT_STATES.get(precondition.getType()))) return StepResult.FAILURE;
+        if (this.conditions.isEmpty()) return StepResult.IGNORE;
+        Condition mainCondition = this.conditions.getLast();
+        var mainType = mainCondition.getType();
+        if (mainCondition.test(Condition.CURRENT_STATES.get(mainType)) == mainCondition.test(Condition.PREVIOUS_STATES.get(mainType))) return StepResult.IGNORE;
+        for (Condition precondition : this.conditions) if (!precondition.test(Condition.CURRENT_STATES.get(precondition.getType()))) return StepResult.FAILURE;
         return StepResult.SUCCESS;
     }
 
