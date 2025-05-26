@@ -1,7 +1,6 @@
 package com.chyzman.reboundless;
 
-
-import com.chyzman.reboundless.api.ReBindings;
+import com.chyzman.reboundless.api.ReBinding;
 import com.chyzman.reboundless.api.action.Condition;
 import com.chyzman.reboundless.api.action.impl.KeyCondition;
 import net.minecraft.client.util.InputUtil;
@@ -17,6 +16,6 @@ public class InputHandler {
         Condition.PREVIOUS_STATES.put(KeyCondition.TYPE, new HashSet<>(CURRENTLY_HELD_KEYS));
         if (CURRENTLY_HELD_KEYS.contains(key) != pressed) if (pressed) CURRENTLY_HELD_KEYS.add(key); else CURRENTLY_HELD_KEYS.remove(key);
         Condition.CURRENT_STATES.put(KeyCondition.TYPE, new HashSet<>(CURRENTLY_HELD_KEYS));
-        ReBindings.stepAll();
+        ReboundlessConfig.REBINDINGS.forEach(ReBinding::step);
     }
 }

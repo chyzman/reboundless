@@ -1,8 +1,7 @@
 package com.chyzman.reboundless.mixin;
 
 import com.chyzman.reboundless.InputHandler;
-import com.chyzman.reboundless.api.ReBinding;
-import com.chyzman.reboundless.api.ReBindings;
+import com.chyzman.reboundless.ReboundlessConfig;
 import com.chyzman.reboundless.mixin.access.KeyBindingAccessor;
 import com.google.common.base.Strings;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -68,7 +67,7 @@ public abstract class InGameHudMixin {
         for (int i = 0; i < 5 - keyBindGroups.size(); i++) text.add("");
         text.add("");
         text.add("Active ReBindings (In no particular order):");
-        var pressedReBindings = ReBindings.allReBindings().stream().filter(binding -> binding.isPressed() || binding.nextStep != 0).toList();
+        var pressedReBindings = ReboundlessConfig.REBINDINGS.stream().filter(binding -> binding.isPressed() || binding.nextStep != 0).toList();
         var reBindingGroups = pressedReBindings.stream().collect(Collectors.groupingBy(key -> pressedReBindings.indexOf(key) / MathHelper.ceil(pressedReBindings.size() / 5d))).values();
         text.addAll(
             reBindingGroups.stream()

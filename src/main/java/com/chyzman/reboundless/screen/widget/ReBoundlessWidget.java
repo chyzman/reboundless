@@ -1,9 +1,8 @@
 package com.chyzman.reboundless.screen.widget;
 
-import com.chyzman.reboundless.api.CategoryMode;
+import com.chyzman.reboundless.ReboundlessConfig;
+import com.chyzman.reboundless.api.GroupMode;
 import com.chyzman.reboundless.api.ReBinding;
-import com.chyzman.reboundless.api.ReBindings;
-import com.chyzman.reboundless.api.SortingMode;
 import com.chyzman.reboundless.InputHandler;
 import com.chyzman.reboundless.util.KeyUtil;
 import com.google.common.collect.HashMultimap;
@@ -57,7 +56,7 @@ public class ReBoundlessWidget extends StatefulWidget {
     public ReBoundlessWidget(MinecraftClient client, GameOptions options) {
         this.client = client;
         this.options = options;
-        ReBindings.updateInitialProperties();
+        ReboundlessConfig.REBINDINGS.forEach(ReBinding::updateInitialProperties);
     }
 
     @Override
@@ -69,8 +68,7 @@ public class ReBoundlessWidget extends StatefulWidget {
         public @Nullable Object selected = null;
         public @Nullable BooleanConsumer updateSelected = null;
 
-        public SortingMode sortingMode = SortingMode.VANILLA;
-        public CategoryMode categoryMode = CategoryMode.VANILLA;
+        public ReboundlessConfig.ScreenState config = ReboundlessConfig.SCREEN_STATE;
 
         private String search = "";
         private TextEditingController searchController = new TextEditingController(search);
@@ -207,20 +205,20 @@ public class ReBoundlessWidget extends StatefulWidget {
                                                                         List.of(
                                                                             new Flexible(
                                                                                 sharedState.searchActive() ?
-                                                                                    new Button(Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sorting.none")), null) :
+                                                                                    new Button(Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sort.search")), null) :
                                                                                     new EnumCyclingButton<>(
-                                                                                        sharedState.sortingMode,
-                                                                                        mode -> Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sorting." + mode.toString().toLowerCase(Locale.ROOT))),
-                                                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.sortingMode = mode)
+                                                                                        sharedState.config.sortMode,
+                                                                                        mode -> Text.translatable("controls.reboundless.keybinds.sortMode", Text.translatable("controls.reboundless.keybinds.sort." + mode.toString().toLowerCase(Locale.ROOT))),
+                                                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.config.sortMode = mode)
                                                                                     )
                                                                             ),
                                                                             new Flexible(
                                                                                 sharedState.searchActive() ?
-                                                                                    new Button(Text.translatable("controls.reboundless.keybinds.categoryMode", Text.translatable("controls.reboundless.keybinds.sorting.search")), null) :
+                                                                                    new Button(Text.translatable("controls.reboundless.keybinds.groupMode", Text.translatable("controls.reboundless.keybinds.group.none")), null) :
                                                                                     new EnumCyclingButton<>(
-                                                                                        sharedState.categoryMode,
-                                                                                        mode -> Text.translatable("controls.reboundless.keybinds.categoryMode", Text.translatable("controls.reboundless.keybinds.sorting." + mode.toString().toLowerCase(Locale.ROOT))),
-                                                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.categoryMode = mode)
+                                                                                        sharedState.config.groupMode,
+                                                                                        mode -> Text.translatable("controls.reboundless.keybinds.groupMode", Text.translatable("controls.reboundless.keybinds.group." + mode.toString().toLowerCase(Locale.ROOT))),
+                                                                                        mode -> SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> reBindingScreenState.config.groupMode = mode)
                                                                                     )
                                                                             )
                                                                         )
@@ -269,7 +267,7 @@ public class ReBoundlessWidget extends StatefulWidget {
                                     if (InputHandler.CURRENTLY_HELD_KEYS.isEmpty()) return false;
                                     if (sharedState.selected == null || sharedState.updateSelected == null) return false;
                                     sharedState.updateSelected.accept(true);
-                                    ReBindings.reCache();
+                                    ReboundlessConfig.reCache();
                                     SharedState.set(ctx, ReBindingScreenState.class, reBindingScreenState -> {
                                         reBindingScreenState.selected = null;
                                         reBindingScreenState.updateSelected = null;
@@ -294,16 +292,16 @@ public class ReBoundlessWidget extends StatefulWidget {
             @Override
             public Widget build(BuildContext ctx) {
                 var sharedState = SharedState.get(ctx, ReBindingScreenState.class);
-                var bindings = ReBindings.allReBindings().stream().filter(sharedState::matchesFilters).toList();
-                return sharedState.categoryMode.equals(CategoryMode.NONE) || sharedState.searchActive() ?
+                var bindings = ReboundlessConfig.REBINDINGS.stream().filter(sharedState::matchesFilters).toList();
+                return sharedState.config.groupMode.equals(GroupMode.NONE) || sharedState.searchActive() ?
                     listReBindings(ctx, bindings) :
                     new Column(
                         bindings.stream()
-                            .collect(Collectors.groupingBy(sharedState.categoryMode::getCategory))
+                            .collect(Collectors.groupingBy(sharedState.config.groupMode::getGroup))
                             .entrySet().stream()
-                            .sorted(Map.Entry.comparingByKey(sharedState.categoryMode.getComparator()))
+                            .sorted(Map.Entry.comparingByKey(sharedState.config.groupReversed ? sharedState.config.groupMode.comparator().reversed() : sharedState.config.groupMode.comparator()))
                             .map(stringListEntry -> new Column(
-                                new Label(LabelStyle.SHADOW, false, sharedState.categoryMode.getLabel(stringListEntry.getKey())),
+                                new Label(LabelStyle.SHADOW, false, sharedState.config.groupMode.getLabel(stringListEntry.getKey())),
                                 listReBindings(ctx, stringListEntry.getValue())
                             )).toList()
                     );
@@ -318,7 +316,7 @@ public class ReBoundlessWidget extends StatefulWidget {
                         .sorted(Comparator.reverseOrder())
                         .map(BoundExtractedResult::getReferent);
                 } else {
-                    streamed = reBindings.stream().sorted(sharedState.sortingMode.comparator);
+                    streamed = reBindings.stream().sorted(sharedState.config.sortReversed ? sharedState.config.sortMode.comparator().reversed() : sharedState.config.sortMode.comparator());
                 }
                 return new Column(
                     streamed
@@ -406,7 +404,7 @@ public class ReBoundlessWidget extends StatefulWidget {
                                                         Texts.join(
                                                             overlaps.get(overlap).stream()
                                                                 .filter(Objects::nonNull)
-                                                                .sorted(SharedState.get(ctx, ReBoundlessWidget.ReBindingScreenState.class).sortingMode.comparator)
+                                                                .sorted(SharedState.get(ctx, ReBoundlessWidget.ReBindingScreenState.class).config.sortMode.comparator())
                                                                 .map(ReBinding::getDisplayedName)
                                                                 .toList(),
                                                             Text.literal("\n")
@@ -550,7 +548,7 @@ public class ReBoundlessWidget extends StatefulWidget {
             public static HashMultimap<Overlap, ReBinding> findOverlaps(ReBinding bind) {
                 var overlaps = HashMultimap.<Overlap, ReBinding>create();
                 var a = bind.properties;
-                for (ReBinding other : ReBindings.allReBindings()) {
+                for (ReBinding other : ReboundlessConfig.REBINDINGS) {
                     if (other == bind) continue;
                     var b = other.properties;
                     if (a.unpressable() || b.unpressable()) continue;

@@ -18,8 +18,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static com.chyzman.reboundless.Reboundless.UNKNOWN_CATEGORY;
-
 public class ReBinding {
 
     public final Properties properties;
@@ -339,9 +337,9 @@ public class ReBinding {
 
         //categorization
 
-        public String getCategory() {
-            if (binding == null || binding.getVanillaCategoryKey() == null) return UNKNOWN_CATEGORY;
-            return binding.getVanillaCategoryKey();
+        public @Nullable String getCategory() {
+            if (binding == null) return null;
+            return binding.getCategoryKey();
         }
 
         //endregion

@@ -16,10 +16,12 @@ import io.wispforest.owo.braid.framework.proxy.WidgetState;
 import io.wispforest.owo.braid.framework.widget.StatefulWidget;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.braid.widgets.cycle.CyclingButton;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.text.Text;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -42,7 +44,7 @@ public class KeyBindBinding extends Bindable {
     }
 
     @Override
-    public String getVanillaCategoryKey() {
+    public String getCategoryKey() {
         return keyBinding.getCategory();
     }
 
@@ -93,7 +95,7 @@ public class KeyBindBinding extends Bindable {
             public Widget build(BuildContext context) {
                 return new CyclingButton<>(
                     this.binding.keyBinding,
-                    KeyBindingAccessor.reboundless$getKeysById().values().stream().toList(),
+                    Arrays.stream(MinecraftClient.getInstance().options.allKeys).toList(),
                     binding -> Text.translatable(binding.getTranslationKey()),
                     bind -> this.setState(() -> this.binding.keyBinding = bind)
                 );

@@ -1,67 +1,80 @@
 {
-  "controls.keybinds.title": [
-    "Re ",
-    {
-      "text": "Key",
-      "strikethrough": true
+  "controls.reboundless...": {
+    "keybinds...": {
+      "sortMode": "Sort: %s",
+      "groupMode": "Group: %s",
+
+      "sort...": {
+        "vanilla": "Vanilla",
+        "alphabetical": "Alphabetical",
+        "registry": "Registry",
+        "search": "Search"
+      },
+      "group...": {
+        "category": "Vanilla",
+        "mod": "Mods",
+        "type": "Type",
+        "none": "None"
+      }
     },
-    " Binds"
-  ],
 
-  "controls.reboundless.keybind.revert": "⇄",
-  "controls.reboundless.keybind.revert.tooltip": "Revert ReBind",
-  "controls.reboundless.keybind.revert.tooltip.confirm": "Are you sure you want to revert this rebind?",
+    "keybind...": {
+      "revert": "⇄",
+      "reset": "☠",
+      "settings": "···",
+      "...tooltip": {
+        "revert": "Revert ReBind",
+        "reset": "Reset ReBind",
+        "...confirm": {
+          "revert": "Are you sure you want to revert this rebind?",
+          "reset": "Are you sure you want to reset this rebind?"
+        }
+      },
 
-  "controls.reboundless.keybind.reset": "☠",
-  "controls.reboundless.keybind.reset.tooltip": "Reset ReBind",
-  "controls.reboundless.keybind.reset.tooltip.confirm": "Are you sure you want to reset this rebind?",
+      "overlap...": {
+        "guaranteed": "Guaranteed",
+        "likely": "Likely",
+        "possible": "Possible",
+        "impossible": "Impossible",
+        "same_function": "Same Functionality",
+        "...tooltip": {
+          "guaranteed": "This ReBind will ALWAYS be pressed with:\n%s",
+          "likely": "This ReBind will frequently be pressed with:\n%s",
+          "possible": "This ReBind might be pressed with:\n%s",
+          "impossible": "This ReBind can NEVER be pressed with:\n%s",
+          "same_function": "This ReBind has the same functionality as:\n%s"
+        }
+      }
+    }
+  },
 
-  "controls.reboundless.keybind.settings": "···",
+  "binding.reboundless...": {
+    "keybind": "Keybind",
+    "macro": "Macro",
+    "macro...": {
+      "command": "Command Macro: \"%s\"",
+      "message": "Message Macro: \"%s\"",
+      "chat": "Chat Macro: \"%s\"",
+      "...type": {
+        "command": "Execute Command",
+        "message": "Send Chat Message",
+        "chat": "Autofill Chat"
+      }
+    }
+  },
 
-  "controls.reboundless.keybind.sticky": "Input Mode:",
-  "controls.reboundless.keybind.inverted": "Inverted:",
+  "key...": {
+    "categories.unknown": "Unknown",
+    "mouse...101": [
+      "Scroll Up",
+      "Scroll Down",
+      "Scroll Left",
+      "Scroll Right"
+    ]
+  },
 
-  "controls.reboundless.keybind.overlap.guaranteed": "Guaranteed",
-  "controls.reboundless.keybind.overlap.guaranteed.tooltip": "This ReBind will ALWAYS be pressed with:\n%s",
-  "controls.reboundless.keybind.overlap.likely": "Likely",
-  "controls.reboundless.keybind.overlap.likely.tooltip": "This ReBind will frequently be pressed with:\n%s",
-  "controls.reboundless.keybind.overlap.possible": "Possible",
-  "controls.reboundless.keybind.overlap.possible.tooltip": "This ReBind might be pressed with:\n%s",
-  "controls.reboundless.keybind.overlap.impossible": "Impossible",
-  "controls.reboundless.keybind.overlap.impossible.tooltip": "This ReBind can NEVER be pressed with:\n%s",
-  "controls.reboundless.keybind.overlap.same_function": "Same Functionality",
-  "controls.reboundless.keybind.overlap.same_function.tooltip": "This ReBind has the same functionality as:\n%s",
-
-  "key.categories.unknown": "Unknown",
-  "key.categories.bindable.reboundless.macro": "Macro",
-
-  "controls.reboundless.keybinds.sortMode": "Sort: %s",
-  "controls.reboundless.keybinds.categoryMode": "Categories: %s",
-
-  "controls.reboundless.keybinds.sorting.vanilla": "Vanilla",
-  "controls.reboundless.keybinds.sorting.alphabetical": "Alphabetical",
-  "controls.reboundless.keybinds.sorting.registry": "Registry",
-  "controls.reboundless.keybinds.sorting.mod": "Mods",
-  "controls.reboundless.keybinds.sorting.search": "Search",
-  "controls.reboundless.keybinds.sorting.none": "None",
-
-  "binding.reboundless.macro.command": "Command Macro: \"%s\"",
-  "binding.reboundless.macro.message": "Message Macro: \"%s\"",
-  "binding.reboundless.macro.chat": "Chat Macro: \"%s\"",
-
-  "binding.reboundless.macro.type.command": "Execute Command",
-  "binding.reboundless.macro.type.message": "Send Chat Message",
-  "binding.reboundless.macro.type.chat": "Autofill Chat",
-
-  "condition.reboundless.in_screen": "In Screen",
-  "condition.reboundless.in_screen.true": "In a Screen",
-  "condition.reboundless.in_screen.false": "Not in a Screen",
-
-  "options.true": "True",
-  "options.false": "False",
-
-  "key.mouse.101": "Scroll Up",
-  "key.mouse.102": "Scroll Down",
-  "key.mouse.103": "Scroll Left",
-  "key.mouse.104": "Scroll Right"
+  "options...": {
+    "true": "True",
+    "false": "False"
+  }
 }

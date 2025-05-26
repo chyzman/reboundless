@@ -1,7 +1,6 @@
 package com.chyzman.reboundless.mixin;
 
-import com.chyzman.reboundless.Reboundless;
-import com.chyzman.reboundless.api.ReBindings;
+import com.chyzman.reboundless.ReboundlessConfig;
 import com.google.gson.Gson;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
@@ -16,10 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class GameOptionsMixin {
 
     @Shadow @Final static Gson GSON;
+
     @Shadow @Final public KeyBinding[] allKeys;
 
     @Inject(method = "accept", at = @At(value = "INVOKE", target = "Lnet/minecraft/sound/SoundCategory;values()[Lnet/minecraft/sound/SoundCategory;"))
     private void loadReBindings(GameOptions.Visitor visitor, CallbackInfo ci) {
-        ReBindings.load(visitor, GSON, allKeys);
+        ReboundlessConfig.load(visitor, GSON, allKeys);
     }
 }

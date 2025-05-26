@@ -5,11 +5,12 @@ import io.wispforest.endec.Endec;
 import io.wispforest.owo.braid.framework.widget.Widget;
 import io.wispforest.owo.serialization.endec.MinecraftEndecs;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.Nullable;
 
 import static com.chyzman.reboundless.api.binding.BindableType.BINDING_TYPE_REGISTRY;
 
 public abstract class Bindable {
-    protected final BindableType<?> type;
+    public final BindableType<?> type;
 
     public static final Endec<Bindable> ENDEC = Endec.dispatchedStruct(
         type -> type.endec,
@@ -23,13 +24,7 @@ public abstract class Bindable {
 
     public abstract Text getName();
 
-    public String getVanillaCategoryKey() {
-        return getTypeCategoryKey();
-    }
-
-    public String getTypeCategoryKey() {
-        return "key.categories." + this.type.translationKey;
-    }
+    public abstract @Nullable String getCategoryKey();
 
     public abstract void setPressed(ReBinding reBinding, boolean pressed, int power);
 

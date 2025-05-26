@@ -19,6 +19,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -44,6 +45,11 @@ public class MacroBinding extends Bindable {
     @Override
     public Text getName() {
         return Text.translatable(this.type.translationKey + "." + this.macroType.name().toLowerCase(Locale.ROOT), macro);
+    }
+
+    @Override
+    public @Nullable String getCategoryKey() {
+        return this.type.translationKey;
     }
 
     @Override

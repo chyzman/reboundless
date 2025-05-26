@@ -1,8 +1,8 @@
 package com.chyzman.reboundless.mixin;
 
 import com.chyzman.reboundless.InputHandler;
+import com.chyzman.reboundless.ReboundlessConfig;
 import com.chyzman.reboundless.api.ReBinding;
-import com.chyzman.reboundless.api.ReBindings;
 import com.chyzman.reboundless.api.binding.impl.KeyBindBinding;
 import com.chyzman.reboundless.pond.KeyBindingDuck;
 import net.minecraft.client.option.KeyBinding;
@@ -48,14 +48,14 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
     @Inject(method = "updatePressedStates", at = @At(value = "HEAD"), cancellable = true)
     private static void handlesUpdatePressedStates(CallbackInfo ci) {
         ci.cancel();
-        for (ReBinding reBinding : ReBindings.allReBindings()) reBinding.updateState();
+        for (ReBinding reBinding : ReboundlessConfig.REBINDINGS) reBinding.updateState();
     }
 
     @Inject(method = "unpressAll", at = @At(value = "HEAD"), cancellable = true)
     private static void handleUnpressAll(CallbackInfo ci) {
         ci.cancel();
         for (KeyBinding binding : KEYS_BY_ID.values()) ((KeyBindingDuck) binding).reboundless$resetState();
-        for (ReBinding reBinding : ReBindings.allReBindings()) if (reBinding.properties.binding() != null && !(reBinding.properties.binding() instanceof KeyBindBinding)) reBinding.properties.binding().reset();
+        for (ReBinding reBinding : ReboundlessConfig.REBINDINGS) if (reBinding.properties.binding() != null && !(reBinding.properties.binding() instanceof KeyBindBinding)) reBinding.properties.binding().reset();
     }
 
     @Inject(method = "getBoundKeyLocalizedText", at = @At(value = "HEAD"), cancellable = true)
@@ -85,7 +85,7 @@ public abstract class KeyBindingMixin implements KeyBindingDuck {
     @Override
     public void reboundless$resetState() {
         activeRebinds.clear();
-        for (ReBinding reBinding : ReBindings.reBindingsByKeyBinding(((KeyBinding) (Object) this))) reBinding.resetState();
+        for (ReBinding reBinding : ReboundlessConfig.KEYBINDING_TO_REBINDING.get(((KeyBinding) (Object) this))) reBinding.resetState();
         reboundless$updateState();
     }
 }
